@@ -90,18 +90,26 @@ define(function (require) {
           xScale.range([0, adjustedWidth]);
         }
 
+        var yScaleDomain = yScaleOpts.domain || d3.extent(mapDomain(data), yValue);
+        if (yScaleDomain[0] === yScaleDomain[1]) {
+          --yScaleDomain[0];
+          ++yScaleDomain[1];
+        }
         yScale = yScaleOpts.scale || d3.scale.linear();
-        yScale.domain(yScaleOpts.domain || d3.extent(mapDomain(data), yValue))
+        yScale.domain(yScaleDomain)
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
         var svg = d3.select(this).selectAll("svg")
-          .data([data])
-          .enter().append("svg")
+          .data([data]);
+        svg.enter().append("svg")
           .attr("width", width)
           .attr("height", height);
+        svg.exit().remove();
+
+        svg.selectAll("g").remove();
 
         var g = svg.append("g")
           .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
@@ -124,6 +132,7 @@ define(function (require) {
           .defined(defined);
 
         var linePath = path()
+          .data([data])
           .pathGenerator(line)
           .cssClass(lines.lineClass)
           .stroke(lines.stroke)
@@ -155,6 +164,7 @@ define(function (require) {
         }
 
         g.append("g")
+          .data([data])
           .attr("class", lines.groupClass)
           .call(linePath);
 

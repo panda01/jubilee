@@ -10,6 +10,6 @@ define(function () {
     if (!isArrayOfArrays) { return data; }
     return data.reduce(function (a, b) {
       return a.concat(b);
-    });
+    }, []);
   };
 });

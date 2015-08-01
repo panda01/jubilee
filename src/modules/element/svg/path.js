@@ -21,14 +21,12 @@ define(function (require) {
       selection.each(function (data, index) {
         var pathEvents = events().listeners(listeners);
 
-        var path = d3.select(this).selectAll("paths")
+        var path = d3.select(this).selectAll("path")
           .data(values ? values.map(accessor) : accessor);
 
         path.exit().remove();
 
-        path.enter().append("path");
-
-        path
+        path.enter().append("path")
           .attr("transform", transform)
           .attr("class", cssClass)
           .attr("fill", fill)
