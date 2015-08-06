@@ -13386,6 +13386,23 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
       selection.each(function (data, index) {
         data = accessor.call(this, data, index);
 
+        var svg = d3.select(this).selectAll("svg")
+          .data([data]);
+
+        var svgBoundBox = this.getBoundingClientRect();
+
+        width = svgBoundBox.width;
+
+        svg.enter().append("svg")
+          .attr("width", width)
+          .attr("height", height);
+        svg.exit().remove();
+
+        svg.selectAll("g").remove();
+
+        var g = svg.append("g")
+          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+
         var adjustedWidth = width - margin.left - margin.right;
         var adjustedHeight = height - margin.top - margin.bottom;
 
@@ -13410,17 +13427,6 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
-        var svg = d3.select(this).selectAll("svg")
-          .data([data]);
-        svg.enter().append("svg")
-          .attr("width", width)
-          .attr("height", height);
-        svg.exit().remove();
-
-        svg.selectAll("g").remove();
-
-        var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         // Brush
         if (listeners.brush && listeners.brush.length) {
