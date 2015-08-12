@@ -3,6 +3,7 @@ define(function (require) {
 
   return function axes() {
     var scale = d3.scale.linear();
+    var chartDimension = 0;
     var orient = "bottom";
     var tick = {
       number: 10,
@@ -10,6 +11,7 @@ define(function (require) {
       size: 6,
       innerTickSize: 6,
       outerTickSize: 6,
+      showGridLines: false,
       padding: 3,
       format: null,
       rotate: 0,
@@ -43,8 +45,7 @@ define(function (require) {
           .orient(orient)
           .ticks(tick.number)
           .tickValues(tick.values)
-          .tickSize(tick.size)
-          .innerTickSize(tick.innerTickSize)
+          .innerTickSize(tick.showGridLines ? -chartDimension : tick.innerTickSize)
           .outerTickSize(tick.outerTickSize)
           .tickPadding(tick.padding)
           .tickFormat(tick.format);
@@ -74,6 +75,12 @@ define(function (require) {
       });
     }
 
+    component.chartDimension = function (_) {
+      if (!arguments.length) { return chartDimension; }
+      chartDimension = _;
+      return component;
+    };
+
     component.scale = function (_) {
       if (!arguments.length) { return scale; }
       scale = _;
@@ -94,6 +101,7 @@ define(function (require) {
       tick.padding = typeof _.padding !== "undefined" ? _.padding : tick.padding;
       tick.format = typeof _.format !== "undefined" ? _.format : tick.format;
       tick.rotate = typeof _.rotate !== "undefined" ? _.rotate : tick.rotate;
+      tick.showGridLines = typeof _.showGridLines !== "undefined" ? _.showGridLines : tick.showGridLines;
       tick.innerTickSize = typeof _.innerTickSize !== "undefined" ? _.innerTickSize : tick.innerTickSize;
       tick.outerTickSize = typeof _.outerTickSize !== "undefined" ? _.outerTickSize : tick.outerTickSize;
       tick.text = typeof _.text !== "undefined" ? _.text : tick.text || {};

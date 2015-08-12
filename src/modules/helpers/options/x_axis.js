@@ -11,6 +11,7 @@ define(function () {
       rotate: 0,
       innerTickSize: 6,
       outerTickSize: 6,
+      showGridLines: false,
       text: {
         anchor: "middle",
         x: 0,

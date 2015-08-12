@@ -81,9 +81,6 @@ define(function (require) {
         width = this.getBoundingClientRect().width;
 
 
-        var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
-
         var adjustedWidth = width - margin.left - margin.right;
         var adjustedHeight = height - margin.top - margin.bottom;
 
@@ -118,6 +115,9 @@ define(function (require) {
 
         svg.selectAll("g").remove();
 
+        var g = svg.append("g")
+          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+
         // Brush
         if (listeners.brush && listeners.brush.length) {
           var brush = brushComponent()
@@ -147,6 +147,7 @@ define(function (require) {
         if (axisX.show) {
           var xAxis = axis()
             .scale(xScale)
+            .chartDimension(adjustedHeight)
             .gClass(axisX.gClass)
             .transform(axisX.transform || "translate(0," + (yScale.range()[0] + 1) + ")")
             .tick(axisX.tick)
@@ -158,6 +159,7 @@ define(function (require) {
         if (axisY.show) {
           var yAxis = axis()
             .scale(yScale)
+            .chartDimension(adjustedWidth)
             .orient("left")
             .gClass(axisY.gClass)
             .transform(axisY.transform || "translate(-1,0)")

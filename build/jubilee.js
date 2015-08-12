@@ -10033,6 +10033,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
 
   return function axes() {
     var scale = d3.scale.linear();
+    var chartDimension = 0;
     var orient = "bottom";
     var tick = {
       number: 10,
@@ -10040,6 +10041,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
       size: 6,
       innerTickSize: 6,
       outerTickSize: 6,
+      showGridLines: false,
       padding: 3,
       format: null,
       rotate: 0,
@@ -10073,8 +10075,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
           .orient(orient)
           .ticks(tick.number)
           .tickValues(tick.values)
-          .tickSize(tick.size)
-          .innerTickSize(tick.innerTickSize)
+          .innerTickSize(tick.showGridLines ? -chartDimension : tick.innerTickSize)
           .outerTickSize(tick.outerTickSize)
           .tickPadding(tick.padding)
           .tickFormat(tick.format);
@@ -10104,6 +10105,12 @@ define('src/modules/component/axis',['require','d3'],function (require) {
       });
     }
 
+    component.chartDimension = function (_) {
+      if (!arguments.length) { return chartDimension; }
+      chartDimension = _;
+      return component;
+    };
+
     component.scale = function (_) {
       if (!arguments.length) { return scale; }
       scale = _;
@@ -10124,6 +10131,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
       tick.padding = typeof _.padding !== "undefined" ? _.padding : tick.padding;
       tick.format = typeof _.format !== "undefined" ? _.format : tick.format;
       tick.rotate = typeof _.rotate !== "undefined" ? _.rotate : tick.rotate;
+      tick.showGridLines = typeof _.showGridLines !== "undefined" ? _.showGridLines : tick.showGridLines;
       tick.innerTickSize = typeof _.innerTickSize !== "undefined" ? _.innerTickSize : tick.innerTickSize;
       tick.outerTickSize = typeof _.outerTickSize !== "undefined" ? _.outerTickSize : tick.outerTickSize;
       tick.text = typeof _.text !== "undefined" ? _.text : tick.text || {};
@@ -10801,6 +10809,7 @@ define('src/modules/helpers/options/x_axis',[],function () {
       rotate: 0,
       innerTickSize: 6,
       outerTickSize: 6,
+      showGridLines: false,
       text: {
         anchor: "middle",
         x: 0,
@@ -10820,6 +10829,7 @@ define('src/modules/helpers/options/x_axis',[],function () {
     }
   };
 });
+
 define('src/modules/helpers/options/y_axis',[],function () {
   return {
     show: true,
@@ -10834,6 +10844,7 @@ define('src/modules/helpers/options/y_axis',[],function () {
       rotate: 0,
       innerTickSize: 6,
       outerTickSize: 6,
+      showGridLines: false,
       text: {
         anchor: "end",
         x: -9,
@@ -10855,6 +10866,7 @@ define('src/modules/helpers/options/y_axis',[],function () {
     }
   };
 });
+
 define('src/modules/helpers/options/zero_line',[],function () {
   return {
     add: true,
@@ -13386,22 +13398,8 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
       selection.each(function (data, index) {
         data = accessor.call(this, data, index);
 
-        var svg = d3.select(this).selectAll("svg")
-          .data([data]);
+        width = this.getBoundingClientRect().width;
 
-        var svgBoundBox = this.getBoundingClientRect();
-
-        width = svgBoundBox.width;
-
-        svg.enter().append("svg")
-          .attr("width", width)
-          .attr("height", height);
-        svg.exit().remove();
-
-        svg.selectAll("g").remove();
-
-        var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         var adjustedWidth = width - margin.left - margin.right;
         var adjustedHeight = height - margin.top - margin.bottom;
@@ -13427,6 +13425,18 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
+        var svg = d3.select(this).selectAll("svg")
+          .data([data]);
+
+        svg.enter().append("svg")
+          .attr("width", width)
+          .attr("height", height);
+        svg.exit().remove();
+
+        svg.selectAll("g").remove();
+
+        var g = svg.append("g")
+          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         // Brush
         if (listeners.brush && listeners.brush.length) {
@@ -13457,6 +13467,7 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         if (axisX.show) {
           var xAxis = axis()
             .scale(xScale)
+            .chartDimension(adjustedHeight)
             .gClass(axisX.gClass)
             .transform(axisX.transform || "translate(0," + (yScale.range()[0] + 1) + ")")
             .tick(axisX.tick)
@@ -13468,6 +13479,7 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         if (axisY.show) {
           var yAxis = axis()
             .scale(yScale)
+            .chartDimension(adjustedWidth)
             .orient("left")
             .gClass(axisY.gClass)
             .transform(axisY.transform || "translate(-1,0)")
