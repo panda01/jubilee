@@ -10331,14 +10331,28 @@ define('src/modules/element/svg/clipPath',['require','d3'],function (require) {
 
     function element(selection) {
       selection.each(function (data, index) {
-        var clipPath = d3.select(this)
-          .append("clipPath");
+        var clipPath = d3.select(this).selectAll("clipPath")
+          .data([data]);
+
+        // Exit
+        clipPath.exit().remove();
+
+        // Enter
+        clipPath.enter().append("clipPath");
 
         // Update
         clipPath
           .attr("id", id)
-          .attr("transform", transform)
-          .append("rect")
+          .attr("transform", transform);
+
+        var rect = clipPath.selectAll("rect")
+          .data([{}]);
+
+        rect.exit().remove();
+
+        rect.enter().append("rect");
+
+        rect
           .attr("x", x)
           .attr("y", y)
           .attr("width", width)
@@ -10665,7 +10679,7 @@ define('src/modules/element/svg/line',['require','d3','src/modules/component/eve
       selection.each(function (data, index) {
         var lineEvents = events().listeners(listeners);
 
-        var lines = d3.select(this).selectAll("lines")
+        var lines = d3.select(this).selectAll("line")
           .data(values ? values : data);
 
         // Exit
@@ -10877,9 +10891,9 @@ define('src/modules/helpers/options/zero_line',[],function () {
   };
 });
 define('src/modules/helpers/api/axis',[],function () {
-  var axis = {};
-
   return function (_, options) {
+    var axis = {};
+
     axis.show = typeof _.show !== "undefined" ? _.show : options.show;
     axis.gClass = typeof _.gClass !== "undefined" ? _.gClass : options.gClass;
     axis.transform = typeof _.transform !== "undefined" ? _.transform : options.transform;
@@ -11384,7 +11398,7 @@ define('src/modules/element/svg/rect',['require','d3','src/modules/component/eve
       selection.each(function (data, index) {
         var rectEvents = events().listeners(listeners);
 
-        var bars = d3.select(this).selectAll("rects")
+        var bars = d3.select(this).selectAll("rect")
           .data(values ? values : data);
 
         bars.exit().remove();
@@ -11611,10 +11625,12 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
         var adjustedWidth = width - margin.left - margin.right;
         var adjustedHeight = height - margin.top - margin.bottom;
 
-        var newData = data.map(values);
+        /* Scales */
+        /* ********************************************************* */
+        var scaleData = data.map(values);
 
         xScale = xScaleOpts.scale || d3.time.scale.utc();
-        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(newData), xValue));
+        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(scaleData), xValue));
 
         if (typeof xScale.rangeBands === "function") {
           xScale.rangeBands([0, adjustedWidth, 0.1]);
@@ -11624,13 +11640,14 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
 
         yScale = yScaleOpts.scale || d3.scale.linear();
         yScale.domain(yScaleOpts.domain || [
-            Math.min(0, d3.min(mapDomain(newData), yStackValue)),
-            Math.max(0, d3.max(mapDomain(newData), yStackValue))
+            Math.min(0, d3.min(mapDomain(scaleData), yStackValue)),
+            Math.max(0, d3.max(mapDomain(scaleData), yStackValue))
           ])
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
+        /* ********************************************************* */
 
         var svg = d3.select(this).selectAll("svg")
           .data([data])
@@ -11696,6 +11713,8 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
           g.call(bars);
         }
 
+        /* Axes */
+        /* ********************************************************* */
         if (axisX.show) {
           var xAxis = axis()
             .scale(xScale)
@@ -11718,6 +11737,7 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
 
           g.call(yAxis);
         }
+        /* ********************************************************* */
 
         if (zeroLine.add) {
           var zLine = zeroAxisLine()
@@ -13205,7 +13225,7 @@ define('src/modules/element/svg/circle',['require','d3','src/modules/component/e
         var circleEvents = events()
           .listeners(listeners);
 
-        var circles = d3.select(this).selectAll("circles")
+        var circles = d3.select(this).selectAll("circle")
           .data(values ? values : data);
 
         // Exit
@@ -14405,7 +14425,7 @@ define('src/modules/element/svg/image',['require','d3','src/modules/component/ev
       selection.each(function (data, index) {
         var imageEvents = events().listeners(listeners);
 
-        var images = d3.select(this).selectAll("images")
+        var images = d3.select(this).selectAll("image")
           .data(values ? values : data);
 
         // Exit
@@ -14726,7 +14746,7 @@ define('src/modules/element/svg/ellipse',['require','d3','src/modules/component/
         var ellipseEvents = events()
           .listeners(listeners);
 
-        var ellipses = d3.select(this).selectAll("ellipses")
+        var ellipses = d3.select(this).selectAll("ellipse")
           .data(values ? values : data);
 
         // Exit
