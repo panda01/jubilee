@@ -10877,9 +10877,9 @@ define('src/modules/helpers/options/zero_line',[],function () {
   };
 });
 define('src/modules/helpers/api/axis',[],function () {
-  var axis = {};
 
   return function (_, options) {
+    var axis = {};
     axis.show = typeof _.show !== "undefined" ? _.show : options.show;
     axis.gClass = typeof _.gClass !== "undefined" ? _.gClass : options.gClass;
     axis.transform = typeof _.transform !== "undefined" ? _.transform : options.transform;
