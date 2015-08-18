@@ -73,9 +73,8 @@
           console.log(e);
         });
 
-      d3.select("#chart")
-        .datum(data.series)
-        .call(myChart);
+      var selection = d3.select("#chart");
+      selection.datum(data.series).call(myChart);
   });
   </script>
 </body>

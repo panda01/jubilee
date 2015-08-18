@@ -56,22 +56,22 @@ define(function (require) {
     var rects = {
       groupClass: "rects",
       cssClass: "bars",
-      x: function (d, i, j, scale) {
-        return scale(xValue.call(null, d, i));
+      x: function (d, i, j, scale, accessor) {
+        return scale(accessor.call(null, d, i));
       },
-      y: function (d, i, j, scale) {
-        return scale(yValue.call(null, d, i));
+      y: function (d, i, j, scale, accessor) {
+        return scale(accessor.call(null, d, i));
       },
       width: function (d, i, j, scale, data) {
         return scale.range()[1] / data.length;
       },
-      height: function (d, i, j, scale) {
-        return scale.range()[0] - scale(yValue.call(null, d, i));
+      height: function (d, i, j, scale, data, accessor) {
+        return scale.range()[0] - scale(accessor.call(null, d, i));
       },
       rx: 0,
       ry: 0,
-      fill: function (d, i) { return color(i); },
-      stroke: function (d, i) { return color(i); },
+      fill: function (d, i) { return i; },
+      stroke: function (d, i) { return i; },
       strokeWidth: 0,
       opacity: 1
     };
@@ -90,10 +90,12 @@ define(function (require) {
         var adjustedWidth = width - margin.left - margin.right;
         var adjustedHeight = height - margin.top - margin.bottom;
 
-        var newData = data.map(values);
+        /* Scales */
+        /* ********************************************************* */
+        var scaleData = data.map(values);
 
         xScale = xScaleOpts.scale || d3.time.scale.utc();
-        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(newData), xValue));
+        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(scaleData), xValue));
 
         if (typeof xScale.rangeBands === "function") {
           xScale.rangeBands([0, adjustedWidth, 0.1]);
@@ -103,13 +105,14 @@ define(function (require) {
 
         yScale = yScaleOpts.scale || d3.scale.linear();
         yScale.domain(yScaleOpts.domain || [
-            Math.min(0, d3.min(mapDomain(newData), yStackValue)),
-            Math.max(0, d3.max(mapDomain(newData), yStackValue))
+            Math.min(0, d3.min(mapDomain(scaleData), yStackValue)),
+            Math.max(0, d3.max(mapDomain(scaleData), yStackValue))
           ])
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
+        /* ********************************************************* */
 
         var svg = d3.select(this).selectAll("svg")
           .data([data])
@@ -148,16 +151,16 @@ define(function (require) {
           .rx(rects.rx)
           .ry(rects.ry)
           .x(function (d, i, j) {
-            return rects.x.call(null, d, i, j, xScale, data);
+            return rects.x.call(null, d, i, j, xScale, xValue);
           })
           .width(function (d, i, j) {
-            return rects.width.call(null, d, i, j, xScale, data);
+            return rects.width.call(null, d, i, j, xScale, data, xValue);
           })
           .y(function (d, i, j) {
-            return rects.y.call(null, d, i, j, yScale, data);
+            return rects.y.call(null, d, i, j, yScale, yValue);
           })
           .height(function (d, i, j) {
-            return rects.height.call(null, d, i, j, yScale, data);
+            return rects.height.call(null, d, i, j, yScale, data, yValue);
           })
           .listeners(listeners);
 
@@ -175,6 +178,8 @@ define(function (require) {
           g.call(bars);
         }
 
+        /* Axes */
+        /* ********************************************************* */
         if (axisX.show) {
           var xAxis = axis()
             .scale(xScale)
@@ -197,6 +202,7 @@ define(function (require) {
 
           g.call(yAxis);
         }
+        /* ********************************************************* */
 
         if (zeroLine.add) {
           var zLine = zeroAxisLine()
