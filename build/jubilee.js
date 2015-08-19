@@ -10435,38 +10435,10 @@ define('src/modules/helpers/map_domain',[],function () {
 });
 
 /**
- * Returns a function that removes event types, e.g: click, brush, mouseover, etc.
- * and event listeners, e.g. function (e) { console.log(e); }
- * from an event object, e.g. { "click": [ listener1, listener2], "brush": [ listener1 ], ... }.
- * Ability to remove one event listener at a time or all listeners for an event type.
- */
-define('src/modules/helpers/remove_event_listener',[],function () {
-  return function (chart) {
-    return function (eventType, listener) {
-      var listeners = chart.listeners();
-
-      if (arguments.length === 1 && listeners[eventType]) {
-        listeners[eventType] = null;
-      }
-      if (arguments.length === 2 && typeof listener === "function") {
-        if (!listeners[eventType]) { return; }
-
-        listeners[eventType] = listeners[eventType].filter(function (handler) {
-          return handler !== listener;
-        });
-      }
-
-      return chart;
-    };
-  };
-});
-/**
  * Adds event listeners to DOM elements
  */
-define('src/modules/component/events',['require','d3','src/modules/helpers/add_event_listener','src/modules/helpers/remove_event_listener'],function (require) {
+define('src/modules/component/events',['require','d3'],function (require) {
   var d3 = require("d3");
-  var addEventListener = require("src/modules/helpers/add_event_listener");
-  var removeEventListener = require("src/modules/helpers/remove_event_listener");
 
   return function events() {
     var listeners = {};
@@ -10508,21 +10480,20 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/add_e
       return component;
     };
 
-    component.listenerCount = function (_) {
-      if (!arguments.length) { return sumListeners(listeners); }
-      if (!listeners[_]) { return 0; }
-      return listeners[_].length;
-    };
+    // Does not need to be here since the user does not get
+    // direct access to the event object. Should move to chart.
 
-    component.on = addEventListener(component);
-
-    component.off = removeEventListener(component);
-
-    component.activeEvents = function () {
-      return Object.keys(listeners).filter(function (event) {
-        return listeners[event].length;
-      });
-    };
+    //component.listenerCount = function (_) {
+    //  if (!arguments.length) { return sumListeners(listeners); }
+    //  if (!listeners[_]) { return 0; }
+    //  return listeners[_].length;
+    //};
+    //
+    //component.activeEvents = function () {
+    //  return Object.keys(listeners).filter(function (event) {
+    //    return listeners[event].length;
+    //  });
+    //};
 
     return component;
   };
@@ -10648,6 +10619,32 @@ define('src/modules/helpers/scale_value',[],function () {
   return function (scale, func) {
     return function (d, i) {
       return scale(func.call(null, d, i));
+    };
+  };
+});
+/**
+ * Returns a function that removes event types, e.g: click, brush, mouseover, etc.
+ * and event listeners, e.g. function (e) { console.log(e); }
+ * from an event object, e.g. { "click": [ listener1, listener2], "brush": [ listener1 ], ... }.
+ * Ability to remove one event listener at a time or all listeners for an event type.
+ */
+define('src/modules/helpers/remove_event_listener',[],function () {
+  return function (chart) {
+    return function (eventType, listener) {
+      var listeners = chart.listeners();
+
+      if (arguments.length === 1 && listeners[eventType]) {
+        listeners[eventType] = null;
+      }
+      if (arguments.length === 2 && typeof listener === "function") {
+        if (!listeners[eventType]) { return; }
+
+        listeners[eventType] = listeners[eventType].filter(function (handler) {
+          return handler !== listener;
+        });
+      }
+
+      return chart;
     };
   };
 });
@@ -13328,7 +13325,284 @@ define('src/modules/helpers/api/circles',[],function () {
     return circles;
   };
 });
-define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/circle','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/element/svg/path','src/modules/helpers/map_domain','src/modules/helpers/remove_event_listener','src/modules/helpers/scale_value','src/modules/element/svg/line','src/modules/helpers/options/clippath','src/modules/helpers/options/margin','src/modules/helpers/options/scale','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/circles','src/modules/helpers/api/clippath','src/modules/helpers/api/lines','src/modules/helpers/api/margin','src/modules/helpers/api/scale','src/modules/helpers/api/zero_line'],function (require) {
+define('src/modules/chart/chart',['require','d3','src/modules/helpers/add_event_listener','src/modules/helpers/deep_copy','src/modules/helpers/remove_event_listener','src/modules/helpers/options/margin','src/modules/helpers/api/margin'],function (require) {
+  var d3 = require("d3");
+  var addEventListener = require("src/modules/helpers/add_event_listener");
+  var deepCopy = require("src/modules/helpers/deep_copy");
+  var removeEventListener = require("src/modules/helpers/remove_event_listener");
+  var marginOptions = require("src/modules/helpers/options/margin");
+  var marginAPI = require("src/modules/helpers/api/margin");
+
+  return function God() {
+    if (!(this instanceof God)) {
+      return new God();
+    }
+
+    // Chart options
+    var margin = deepCopy(marginOptions, {});
+    var width = 760;
+    var height = 120;
+    var color = d3.scale.category20c();
+    var accessor = function (d) { return d; };
+    var xValue = function (d) { return d.x; };
+    var yValue = function (d) { return d.y; };
+    var listeners = {};
+
+    // Public API
+    // A Key map of all of the elements we need handles on
+    this.elems = {};
+    this.margin = function (_) {
+      if (!arguments.length) { return margin; }
+      margin = marginAPI(_, margin);
+      return this;
+    };
+
+    this.width = function (_) {
+      if (!arguments.length) { return width; }
+      width = _;
+      return this;
+    };
+
+    this.height = function (_) {
+      if (!arguments.length) { return height; }
+      height = _;
+      return this;
+    };
+
+    this.color = function (_) {
+      if (!arguments.length) { return color; }
+      color = _;
+      return this;
+    };
+
+    this.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
+      return this;
+    };
+
+    this.x = function (_) {
+      if (!arguments.length) { return xValue; }
+      xValue = _;
+      return this;
+    };
+
+    this.y = function (_) {
+      if (!arguments.length) { return yValue; }
+      yValue = _;
+      return this;
+    };
+
+    this.listeners = function (_) {
+      if (!arguments.length) { return listeners; }
+      listeners = _;
+      return this;
+    };
+
+    this.on = addEventListener(this);
+
+    this.off = removeEventListener(this);
+
+    // Override this function!!!
+    this.apply = function(that, selection) {};
+
+    return this;
+  };
+});
+
+define('src/modules/chart/series',['require','d3','src/modules/chart/chart','src/modules/component/axis','src/modules/component/brush','src/modules/helpers/deep_copy','src/modules/helpers/map_domain','src/modules/element/svg/line','src/modules/helpers/options/scale','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/scale','src/modules/helpers/api/zero_line'],function (require) {
+  var d3 = require("d3");
+  var God = require("src/modules/chart/chart");
+  var axis = require("src/modules/component/axis");
+  var brushComponent = require("src/modules/component/brush");
+  var deepCopy = require("src/modules/helpers/deep_copy");
+  var mapDomain = require("src/modules/helpers/map_domain");
+  var zeroAxisLine = require("src/modules/element/svg/line");
+  var scaleOptions = require("src/modules/helpers/options/scale");
+  var xAxisOptions = require("src/modules/helpers/options/x_axis");
+  var yAxisOptions = require("src/modules/helpers/options/y_axis");
+  var zeroLineOptions = require("src/modules/helpers/options/zero_line");
+  var axisAPI = require("src/modules/helpers/api/axis");
+  var scaleAPI = require("src/modules/helpers/api/scale");
+  var zeroLineAPI = require("src/modules/helpers/api/zero_line");
+
+  function Series() {
+    if (!(this instanceof Series)) {
+      return new Series();
+    }
+
+    God.apply(this);
+
+    // Chart options
+    var interpolate = "linear";
+    var tension = 0.7;
+
+    // Scale options
+    var xScaleOpts = deepCopy(scaleOptions, {});
+    var yScaleOpts = deepCopy(scaleOptions, {});
+    var xScale;
+    var yScale;
+
+    // Other options
+    var axisX = deepCopy(xAxisOptions, {});
+    var axisY = deepCopy(yAxisOptions, {});
+    var zeroLine = deepCopy(zeroLineOptions, {});
+    var defined = function () { return true; };
+
+
+    // Public API
+    this.defined = function (_) {
+      if (!arguments.length) { return defined; }
+      defined = _;
+      return this;
+    };
+
+    this.interpolate = function (_) {
+      if (!arguments.length) { return interpolate; }
+      interpolate = _;
+      return this;
+    };
+
+    this.tension = function (_) {
+      if (!arguments.length) { return tension; }
+      tension = _;
+      return this;
+    };
+
+    this.xScale = function (_) {
+      if (!arguments.length) { return xScaleOpts; }
+      xScaleOpts = scaleAPI(_, xScaleOpts);
+      return this;
+    };
+
+    this.yScale = function (_) {
+      if (!arguments.length) { return yScaleOpts; }
+      yScaleOpts = scaleAPI(_, yScaleOpts);
+      return this;
+    };
+
+    this.xAxis = function (_) {
+      if (!arguments.length) { return axisX; }
+      axisX = axisAPI(_, axisX);
+      return this;
+    };
+
+    this.yAxis = function (_) {
+      if (!arguments.length) { return axisY; }
+      axisY = axisAPI(_, axisY);
+      return this;
+    };
+
+    this.zeroLine = function (_) {
+      if (!arguments.length) { return zeroLine; }
+      zeroLine = zeroLineAPI(_, zeroLine);
+      return this;
+    };
+
+
+    return this;
+  }
+
+  Series.prototype = new God();
+  Series.prototype.apply = function(selection) {
+    var that = this;
+    var margin = this.margin();
+    var width = this.width();
+    var height = this.height();
+    var color = this.color();
+    var accessor = this.accessor();
+    var xValue = this.x();
+    var yValue = this.y();
+    var listeners = this.listeners();
+    var xScaleOpts = this.xScale();
+    var yScaleOpts = this.yScale();
+    var axisX = this.xAxis();
+    var axisY = this.yAxis();
+    var zeroLine = this.zeroLine();
+    selection.each(function (data, index) {
+      data = accessor.call(this, data, index);
+
+      var adjustedWidth = width - margin.left - margin.right;
+      var adjustedHeight = height - margin.top - margin.bottom;
+
+      xScale = xScaleOpts.scale || d3.time.scale.utc();
+      xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(data), xValue));
+
+      if (typeof xScale.rangeBands === "function") {
+        xScale.rangeBands([0, adjustedWidth, 0.1]);
+      } else {
+        xScale.range([0, adjustedWidth]);
+      }
+
+      yScale = yScaleOpts.scale || d3.scale.linear();
+      yScale.domain(yScaleOpts.domain || d3.extent(mapDomain(data), yValue))
+        .range([adjustedHeight, 0]);
+
+      if (xScaleOpts.nice) { xScale.nice(); }
+      if (yScaleOpts.nice) { yScale.nice(); }
+
+      var svg = d3.select(this).selectAll("svg")
+        .data([data])
+        .enter().append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      var g = that.elems.oldG = svg.append("g")
+        .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+
+      // Brush
+      if (listeners.brush && listeners.brush.length) {
+        var brush = brushComponent()
+          .height(adjustedHeight)
+          .xScale(xScale)
+          .brushend(listeners.brush);
+
+        g.call(brush);
+      }
+
+      if (axisX.show) {
+        var xAxis = axis()
+          .scale(xScale)
+          .gClass(axisX.gClass)
+          .transform(axisX.transform || "translate(0," + (yScale.range()[0] + 1) + ")")
+          .tick(axisX.tick)
+          .title(axisX.title);
+
+        g.call(xAxis);
+      }
+
+      if (axisY.show) {
+        var yAxis = axis()
+          .scale(yScale)
+          .orient("left")
+          .gClass(axisY.gClass)
+          .transform(axisY.transform || "translate(-1,0)")
+          .tick(axisY.tick)
+          .title(axisY.title);
+
+        g.call(yAxis);
+      }
+
+      if (zeroLine.add) {
+        var zLine = zeroAxisLine()
+          .cssClass(zeroLine.lineClass)
+          .x1(function () { return xScale.range()[0]; })
+          .x2(function () { return xScale.range()[1]; })
+          .y1(function () { return yScale(0); })
+          .y2(function () { return yScale(0); })
+          .stroke(zeroLine.stroke)
+          .strokeWidth(zeroLine.strokeWidth)
+          .opacity(zeroLine.opacity);
+
+        g.call(zLine);
+      }
+    });
+  };
+
+  return Series;
+});
+
+define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/circle','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/element/svg/path','src/modules/helpers/map_domain','src/modules/helpers/remove_event_listener','src/modules/helpers/scale_value','src/modules/element/svg/line','src/modules/helpers/options/clippath','src/modules/helpers/api/axis','src/modules/helpers/api/circles','src/modules/helpers/api/clippath','src/modules/helpers/api/lines','src/modules/helpers/api/margin','src/modules/helpers/api/scale','src/modules/helpers/api/zero_line','src/modules/chart/series'],function (require) {
   var d3 = require("d3");
 
   var addEventListener = require("src/modules/helpers/add_event_listener");
@@ -13342,14 +13616,7 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
   var removeEventListener = require("src/modules/helpers/remove_event_listener");
   var scaleValue = require("src/modules/helpers/scale_value");
   var zeroAxisLine = require("src/modules/element/svg/line");
-
   var clipPathOptions = require("src/modules/helpers/options/clippath");
-  var marginOptions = require("src/modules/helpers/options/margin");
-  var scaleOptions = require("src/modules/helpers/options/scale");
-  var xAxisOptions = require("src/modules/helpers/options/x_axis");
-  var yAxisOptions = require("src/modules/helpers/options/y_axis");
-  var zeroLineOptions = require("src/modules/helpers/options/zero_line");
-
   var axisAPI = require("src/modules/helpers/api/axis");
   var circlesAPI = require("src/modules/helpers/api/circles");
   var clippathAPI = require("src/modules/helpers/api/clippath");
@@ -13358,31 +13625,24 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
   var scaleAPI = require("src/modules/helpers/api/scale");
   var zeroLineAPI = require("src/modules/helpers/api/zero_line");
 
-  return function lineChart() {
-    // Chart options
-    var margin = deepCopy(marginOptions, {});
-    var width = 760;
-    var height = 120;
-    var color = d3.scale.category20c();
-    var accessor = function (d) { return d; };
-    var xValue = function (d) { return d.x; };
-    var yValue = function (d) { return d.y; };
-    var defined = function () { return true; };
-    var interpolate = "linear";
-    var tension = 0.7;
+  var Series = require("src/modules/chart/series");
 
-    // Scale options
-    var xScaleOpts = deepCopy(scaleOptions, {});
-    var yScaleOpts = deepCopy(scaleOptions, {});
-    var xScale;
-    var yScale;
+  function LineChart(selection) {
+    if (!(this instanceof LineChart)) {
+      return new LineChart(selection);
+    }
+    Series.apply(this);
 
-    // Other options
-    var axisX = deepCopy(xAxisOptions, {});
-    var axisY = deepCopy(yAxisOptions, {});
+    var xScale = this.xScale();
+    var yScale = this.yScale();
+    var xValue = this.x();
+    var yValue = this.y();
+    var color = this.color();
+    var interpolate = this.interpolate();
+    var tension = this.tension();
+    var defined = this.defined();
+    var listeners = this.listeners();
     var clipPath = deepCopy(clipPathOptions, {});
-    var zeroLine = deepCopy(zeroLineOptions, {});
-    var listeners = {};
 
     // Line Options
     var lines = {
@@ -13404,48 +13664,11 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
       strokeWidth: 3
     };
 
-    function chart(selection) {
+    // Surprise, that(this) and selection are the same!!!
+    this.apply = function(selection, selection2) {
+      var that = this;
+      Series.prototype.apply.call(this, selection);
       selection.each(function (data, index) {
-        data = accessor.call(this, data, index);
-
-        var adjustedWidth = width - margin.left - margin.right;
-        var adjustedHeight = height - margin.top - margin.bottom;
-
-        xScale = xScaleOpts.scale || d3.time.scale.utc();
-        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(data), xValue));
-
-        if (typeof xScale.rangeBands === "function") {
-          xScale.rangeBands([0, adjustedWidth, 0.1]);
-        } else {
-          xScale.range([0, adjustedWidth]);
-        }
-
-        yScale = yScaleOpts.scale || d3.scale.linear();
-        yScale.domain(yScaleOpts.domain || d3.extent(mapDomain(data), yValue))
-          .range([adjustedHeight, 0]);
-
-        if (xScaleOpts.nice) { xScale.nice(); }
-        if (yScaleOpts.nice) { yScale.nice(); }
-
-        var svg = d3.select(this).selectAll("svg")
-          .data([data])
-          .enter().append("svg")
-          .attr("width", width)
-          .attr("height", height);
-
-        var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
-
-        // Brush
-        if (listeners.brush && listeners.brush.length) {
-          var brush = brushComponent()
-            .height(adjustedHeight)
-            .xScale(xScale)
-            .brushend(listeners.brush);
-
-          g.call(brush);
-        }
-
         var X = scaleValue(xScale, xValue);
         var Y = scaleValue(yScale, yValue);
         var line = d3.svg.line().x(X).y(Y)
@@ -13463,51 +13686,15 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
           .opacity(lines.opacity)
           .listeners(listeners);
 
-        if (axisX.show) {
-          var xAxis = axis()
-            .scale(xScale)
-            .gClass(axisX.gClass)
-            .transform(axisX.transform || "translate(0," + (yScale.range()[0] + 1) + ")")
-            .tick(axisX.tick)
-            .title(axisX.title);
-
-          g.call(xAxis);
-        }
-
-        if (axisY.show) {
-          var yAxis = axis()
-            .scale(yScale)
-            .orient("left")
-            .gClass(axisY.gClass)
-            .transform(axisY.transform || "translate(-1,0)")
-            .tick(axisY.tick)
-            .title(axisY.title);
-
-          g.call(yAxis);
-        }
-
+        var g = that.elems.oldG;
         g.append("g")
           .attr("class", lines.groupClass)
           .call(linePath);
 
-        if (zeroLine.add) {
-          var zLine = zeroAxisLine()
-            .cssClass(zeroLine.lineClass)
-            .x1(function () { return xScale.range()[0]; })
-            .x2(function () { return xScale.range()[1]; })
-            .y1(function () { return yScale(0); })
-            .y2(function () { return yScale(0); })
-            .stroke(zeroLine.stroke)
-            .strokeWidth(zeroLine.strokeWidth)
-            .opacity(zeroLine.opacity);
-
-          g.call(zLine);
-        }
-
         if (circles.show) {
           var clippath = clip()
-            .width(clipPath.width || adjustedWidth)
-            .height(clipPath.height || adjustedHeight);
+            .width(clipPath.width || xScale.range()[1])
+            .height(clipPath.height || yScale.range()[0]);
 
           var points = circle()
             .cx(X)
@@ -13536,125 +13723,31 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
     }
 
     // Public API
-    chart.margin = function (_) {
-      if (!arguments.length) { return margin; }
-      margin = marginAPI(_, margin);
-      return chart;
-    };
-
-    chart.width = function (_) {
-      if (!arguments.length) { return width; }
-      width = _;
-      return chart;
-    };
-
-    chart.height = function (_) {
-      if (!arguments.length) { return height; }
-      height = _;
-      return chart;
-    };
-
-    chart.color = function (_) {
-      if (!arguments.length) { return color; }
-      color = _;
-      return chart;
-    };
-
-    chart.accessor = function (_) {
-      if (!arguments.length) { return accessor; }
-      accessor = _;
-      return chart;
-    };
-
-    chart.x = function (_) {
-      if (!arguments.length) { return xValue; }
-      xValue = _;
-      return chart;
-    };
-
-    chart.y = function (_) {
-      if (!arguments.length) { return yValue; }
-      yValue = _;
-      return chart;
-    };
-
-    chart.defined = function (_) {
-      if (!arguments.length) { return defined; }
-      defined = _;
-      return chart;
-    };
-
-    chart.interpolate = function (_) {
-      if (!arguments.length) { return interpolate; }
-      interpolate = _;
-      return chart;
-    };
-
-    chart.tension = function (_) {
-      if (!arguments.length) { return tension; }
-      tension = _;
-      return chart;
-    };
-
-    chart.xScale = function (_) {
-      if (!arguments.length) { return xScaleOpts; }
-      xScaleOpts = scaleAPI(_, xScaleOpts);
-      return chart;
-    };
-
-    chart.yScale = function (_) {
-      if (!arguments.length) { return yScaleOpts; }
-      yScaleOpts = scaleAPI(_, yScaleOpts);
-      return chart;
-    };
-
-    chart.xAxis = function (_) {
-      if (!arguments.length) { return axisX; }
-      axisX = axisAPI(_, axisX);
-      return chart;
-    };
-
-    chart.yAxis = function (_) {
-      if (!arguments.length) { return axisY; }
-      axisY = axisAPI(_, axisY);
-      return chart;
-    };
-
-    chart.clipPath = function (_) {
+    this.clipPath = function (_) {
       if (!arguments.length) { return clipPath; }
       clipPath = clippathAPI(_, clipPath);
-      return chart;
+      return this;
     };
 
-    chart.zeroLine = function (_) {
-      if (!arguments.length) { return zeroLine; }
-      zeroLine = zeroLineAPI(_, zeroLine);
-      return chart;
-    };
-
-    chart.lines = function (_) {
+    this.lines = function (_) {
       if (!arguments.length) { return lines; }
       lines = linesAPI(_, lines);
-      return chart;
+      return this;
     };
 
-    chart.circles = function (_) {
+    this.circles = function (_) {
       if (!arguments.length) { return circles; }
       circles = circlesAPI(_, circles);
-      return chart;
+      return this;
     };
+  }
 
-    chart.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
-      return chart;
-    };
 
-    chart.on = addEventListener(chart);
+  LineChart.prototype = new Series();
 
-    chart.off = removeEventListener(chart);
+  return function () {
 
-    return chart;
+    return new LineChart();
   };
 });
 

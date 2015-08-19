@@ -29,16 +29,6 @@ define(function (require) {
     }
     Series.apply(this);
 
-    var xScale = this.xScale();
-    var yScale = this.yScale();
-    var xValue = this.x();
-    var yValue = this.y();
-    var color = this.color();
-    var interpolate = this.interpolate();
-    var tension = this.tension();
-    var defined = this.defined();
-    var listeners = this.listeners();
-    var clipPath = deepCopy(clipPathOptions, {});
 
     // Line Options
     var lines = {
@@ -62,8 +52,19 @@ define(function (require) {
 
     // Surprise, that(this) and selection are the same!!!
     this.apply = function(selection) {
-      var that = this;
       Series.prototype.apply.call(this, selection);
+      var that = this;
+      var xScale = this.xScale();
+      var yScale = this.yScale();
+      var xValue = this.x();
+      var yValue = this.y();
+      var color = this.color();
+      var interpolate = this.interpolate();
+      var tension = this.tension();
+      var defined = this.defined();
+      var listeners = this.listeners();
+      var clipPath = deepCopy(clipPathOptions, {});
+
       selection.each(function (data, index) {
         var X = scaleValue(xScale, xValue);
         var Y = scaleValue(yScale, yValue);

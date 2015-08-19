@@ -57,13 +57,25 @@ define(function (require) {
       return this;
     };
 
+    this.yScale = function (_) {
+      if (!arguments.length) { return yScale; }
+      yScale = _;
+      return this;
+    };
+
     this.xScale = function (_) {
+      if (!arguments.length) { return xScale; }
+      xScale = _;
+      return this;
+    };
+
+    this.xScaleOpts = function (_) {
       if (!arguments.length) { return xScaleOpts; }
       xScaleOpts = scaleAPI(_, xScaleOpts);
       return this;
     };
 
-    this.yScale = function (_) {
+    this.yScaleOpts = function (_) {
       if (!arguments.length) { return yScaleOpts; }
       yScaleOpts = scaleAPI(_, yScaleOpts);
       return this;
@@ -102,8 +114,8 @@ define(function (require) {
     var xValue = this.x();
     var yValue = this.y();
     var listeners = this.listeners();
-    var xScaleOpts = this.xScale();
-    var yScaleOpts = this.yScale();
+    var xScaleOpts = this.xScaleOpts();
+    var yScaleOpts = this.yScaleOpts();
     var axisX = this.xAxis();
     var axisY = this.yAxis();
     var zeroLine = this.zeroLine();
@@ -114,6 +126,8 @@ define(function (require) {
       var adjustedHeight = height - margin.top - margin.bottom;
 
       xScale = xScaleOpts.scale || d3.time.scale.utc();
+      // Ensure this option gets inheritted
+      that.xScale(xScale);
       xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(data), xValue));
 
       if (typeof xScale.rangeBands === "function") {
@@ -123,6 +137,8 @@ define(function (require) {
       }
 
       yScale = yScaleOpts.scale || d3.scale.linear();
+      // Ensure this option gets inheritted
+      that.yScale(yScale);
       yScale.domain(yScaleOpts.domain || d3.extent(mapDomain(data), yValue))
         .range([adjustedHeight, 0]);
 
