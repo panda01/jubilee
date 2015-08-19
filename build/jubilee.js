@@ -10891,15 +10891,9 @@ define('src/modules/helpers/options/zero_line',[],function () {
   };
 });
 define('src/modules/helpers/api/axis',[],function () {
-<<<<<<< HEAD
-
-  return function (_, options) {
-    var axis = {};
-=======
   return function (_, options) {
     var axis = {};
 
->>>>>>> upstream/master
     axis.show = typeof _.show !== "undefined" ? _.show : options.show;
     axis.gClass = typeof _.gClass !== "undefined" ? _.gClass : options.gClass;
     axis.transform = typeof _.transform !== "undefined" ? _.transform : options.transform;
@@ -13384,11 +13378,8 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
     var xValue = function (d) { return d.x; };
     var yValue = function (d) { return d.y; };
     var defined = function () { return true; };
-<<<<<<< HEAD
-=======
     var interpolate = "linear";
     var tension = 0.7;
->>>>>>> upstream/master
 
     // Scale options
     var xScaleOpts = deepCopy(scaleOptions, {});
@@ -13427,12 +13418,9 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
       selection.each(function (data, index) {
         data = accessor.call(this, data, index);
 
-<<<<<<< HEAD
         width = this.getBoundingClientRect().width;
 
 
-=======
->>>>>>> upstream/master
         var adjustedWidth = width - margin.left - margin.right;
         var adjustedHeight = height - margin.top - margin.bottom;
 
@@ -13451,18 +13439,13 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
           ++yScaleDomain[1];
         }
         yScale = yScaleOpts.scale || d3.scale.linear();
-<<<<<<< HEAD
         yScale.domain(yScaleDomain)
-=======
-        yScale.domain(yScaleOpts.domain || d3.extent(mapDomain(data), yValue))
->>>>>>> upstream/master
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
         var svg = d3.select(this).selectAll("svg")
-<<<<<<< HEAD
           .data([data]);
 
         svg.enter().append("svg")
@@ -13471,12 +13454,6 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         svg.exit().remove();
 
         svg.selectAll("g").remove();
-=======
-          .data([data])
-          .enter().append("svg")
-          .attr("width", width)
-          .attr("height", height);
->>>>>>> upstream/master
 
         var g = svg.append("g")
           .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
