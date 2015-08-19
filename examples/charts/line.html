@@ -23,38 +23,25 @@
           src="../../../node_modules/requirejs/require.js"></script>
   <script>
     require(["../../src/index"], function (jubilee) {
-      var data = {
-        series: [
-          [
-            { x: 1411761450000, y: 41, label: "band"},
-            { x: 1411761480000, y: 18, label: "band"},
-            { x: 1411761510000, y: 20, label: "band"},
-            { x: 1411761540000, y: 17, label: "band"},
-            { x: 1411761570000, y: 17, label: "band"}
-          ],
-          [
-            { x: 1411761450000, y: 91, label: "of"},
-            { x: 1411761480000, y: 88, label: "of"},
-            { x: 1411761510000, y: 100, label: "of"},
-            { x: 1411761540000, y: 47, label: "of"},
-            { x: 1411761570000, y: 57, label: "of"}
-          ],
-          [
-            { x: 1411761450000, y: 191, label: "brothers"},
-            { x: 1411761480000, y: 188, label: "brothers"},
-            { x: 1411761510000, y: 105, label: "brothers"},
-            { x: 1411761540000, y: 147, label: "brothers"},
-            { x: 1411761570000, y: 157, label: "brothers"}
-          ],
-          [
-            { x: 1411761450000, y: -201, label: "yes"},
-            { x: 1411761480000, y: -198, label: "yes"},
-            { x: 1411761510000, y: -232, label: "yes"},
-            { x: 1411761540000, y: -547, label: "yes"},
-            { x: 1411761570000, y: -357, label: "yes"}
-          ]
-        ]
-      };
+      var data = (function() {
+        function sample() { return Math.round(Math.random() * 1000) - 500; };
+        function makeDataSet(label) {
+          var count = 10;
+          var millisUntilNext = 1000*60;
+          var date = (new Date()).getTime();
+          var data = [];
+          for(var i = 0; i < count; ++i) {
+            data.push({
+              x: date - (i*millisUntilNext),
+              y: sample(),
+              label: label
+            });
+          }
+          return data;
+        }
+        var data = ('band of brothers yes').split(' ').map(makeDataSet);
+        return { series: data };
+      }());
 
       var color = d3.scale.category10(["band", "of", "brothers", "yes"]);
 
