@@ -10679,7 +10679,7 @@ define('src/modules/element/svg/line',['require','d3','src/modules/component/eve
       selection.each(function (data, index) {
         var lineEvents = events().listeners(listeners);
 
-        var lines = d3.select(this).selectAll("line")
+        var lines = d3.select(this).selectAll("lines")
           .data(values ? values : data);
 
         // Exit
@@ -10883,7 +10883,7 @@ define('src/modules/helpers/options/y_axis',[],function () {
 
 define('src/modules/helpers/options/zero_line',[],function () {
   return {
-    add: true,
+    add: false,
     lineClass: "zero-line",
     stroke: "black",
     strokeWidth: 1,
@@ -10891,9 +10891,15 @@ define('src/modules/helpers/options/zero_line',[],function () {
   };
 });
 define('src/modules/helpers/api/axis',[],function () {
+<<<<<<< HEAD
+
+  return function (_, options) {
+    var axis = {};
+=======
   return function (_, options) {
     var axis = {};
 
+>>>>>>> upstream/master
     axis.show = typeof _.show !== "undefined" ? _.show : options.show;
     axis.gClass = typeof _.gClass !== "undefined" ? _.gClass : options.gClass;
     axis.transform = typeof _.transform !== "undefined" ? _.transform : options.transform;
@@ -11591,22 +11597,22 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
     var rects = {
       groupClass: "rects",
       cssClass: "bars",
-      x: function (d, i, j, scale) {
-        return scale(xValue.call(null, d, i));
+      x: function (d, i, j, scale, accessor) {
+        return scale(accessor.call(null, d, i));
       },
-      y: function (d, i, j, scale) {
-        return scale(yValue.call(null, d, i));
+      y: function (d, i, j, scale, accessor) {
+        return scale(accessor.call(null, d, i));
       },
       width: function (d, i, j, scale, data) {
         return scale.range()[1] / data.length;
       },
-      height: function (d, i, j, scale) {
-        return scale.range()[0] - scale(yValue.call(null, d, i));
+      height: function (d, i, j, scale, data, accessor) {
+        return scale.range()[0] - scale(accessor.call(null, d, i));
       },
       rx: 0,
       ry: 0,
-      fill: function (d, i) { return color(i); },
-      stroke: function (d, i) { return color(i); },
+      fill: function (d, i) { return i; },
+      stroke: function (d, i) { return i; },
       strokeWidth: 0,
       opacity: 1
     };
@@ -11686,16 +11692,16 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
           .rx(rects.rx)
           .ry(rects.ry)
           .x(function (d, i, j) {
-            return rects.x.call(null, d, i, j, xScale, data);
+            return rects.x.call(null, d, i, j, xScale, xValue);
           })
           .width(function (d, i, j) {
-            return rects.width.call(null, d, i, j, xScale, data);
+            return rects.width.call(null, d, i, j, xScale, data, xValue);
           })
           .y(function (d, i, j) {
-            return rects.y.call(null, d, i, j, yScale, data);
+            return rects.y.call(null, d, i, j, yScale, yValue);
           })
           .height(function (d, i, j) {
-            return rects.height.call(null, d, i, j, yScale, data);
+            return rects.height.call(null, d, i, j, yScale, data, yValue);
           })
           .listeners(listeners);
 
@@ -13378,6 +13384,11 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
     var xValue = function (d) { return d.x; };
     var yValue = function (d) { return d.y; };
     var defined = function () { return true; };
+<<<<<<< HEAD
+=======
+    var interpolate = "linear";
+    var tension = 0.7;
+>>>>>>> upstream/master
 
     // Scale options
     var xScaleOpts = deepCopy(scaleOptions, {});
@@ -13396,19 +13407,17 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
     var lines = {
       groupClass: "paths",
       lineClass: "line",
-      stroke: function (d, i) { return color(i); },
+      stroke: function (d, i, j) { return i; },
       strokeWidth: 3,
-      opacity: 1,
-      interpolate: "linear",
-      tension:  0.7
+      opacity: 1
     };
 
     // Circle Options
     var circles = {
-      show: true,
+      show: false,
       groupClass: "circle layer",
       circleClass: "circle",
-      fill: function (d, i, j) { return color(j); },
+      fill: function (d, i, j) { return j; },
       stroke: null,
       radius: 5,
       strokeWidth: 3
@@ -13418,9 +13427,12 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
       selection.each(function (data, index) {
         data = accessor.call(this, data, index);
 
+<<<<<<< HEAD
         width = this.getBoundingClientRect().width;
 
 
+=======
+>>>>>>> upstream/master
         var adjustedWidth = width - margin.left - margin.right;
         var adjustedHeight = height - margin.top - margin.bottom;
 
@@ -13439,13 +13451,18 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
           ++yScaleDomain[1];
         }
         yScale = yScaleOpts.scale || d3.scale.linear();
+<<<<<<< HEAD
         yScale.domain(yScaleDomain)
+=======
+        yScale.domain(yScaleOpts.domain || d3.extent(mapDomain(data), yValue))
+>>>>>>> upstream/master
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
         var svg = d3.select(this).selectAll("svg")
+<<<<<<< HEAD
           .data([data]);
 
         svg.enter().append("svg")
@@ -13454,6 +13471,12 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         svg.exit().remove();
 
         svg.selectAll("g").remove();
+=======
+          .data([data])
+          .enter().append("svg")
+          .attr("width", width)
+          .attr("height", height);
+>>>>>>> upstream/master
 
         var g = svg.append("g")
           .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
@@ -13471,15 +13494,17 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         var X = scaleValue(xScale, xValue);
         var Y = scaleValue(yScale, yValue);
         var line = d3.svg.line().x(X).y(Y)
-          .interpolate(lines.interpolate)
-          .tension(lines.tension)
+          .interpolate(interpolate)
+          .tension(tension)
           .defined(defined);
 
         var linePath = path()
           .data([data])
           .pathGenerator(line)
           .cssClass(lines.lineClass)
-          .stroke(lines.stroke)
+          .stroke(function (d, i, j) {
+            return color(lines.stroke.call(null, d, i, j));
+          })
           .strokeWidth(lines.strokeWidth)
           .opacity(lines.opacity)
           .listeners(listeners);
@@ -13539,7 +13564,9 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
             .color(color)
             .radius(circles.radius)
             .cssClass(circles.circleClass)
-            .fill(circles.fill)
+            .fill(function (d, i, j) {
+              return circles.fill.call(null, d, i, j);
+            })
             .stroke(circles.stroke ? circles.stroke : circles.fill)
             .strokeWidth(circles.strokeWidth)
             .listeners(listeners);
@@ -13603,6 +13630,18 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
     chart.defined = function (_) {
       if (!arguments.length) { return defined; }
       defined = _;
+      return chart;
+    };
+
+    chart.interpolate = function (_) {
+      if (!arguments.length) { return interpolate; }
+      interpolate = _;
+      return chart;
+    };
+
+    chart.tension = function (_) {
+      if (!arguments.length) { return tension; }
+      tension = _;
       return chart;
     };
 

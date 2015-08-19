@@ -56,22 +56,22 @@ define(function (require) {
     var rects = {
       groupClass: "rects",
       cssClass: "bars",
-      x: function (d, i, j, scale) {
-        return scale(xValue.call(null, d, i));
+      x: function (d, i, j, scale, accessor) {
+        return scale(accessor.call(null, d, i));
       },
-      y: function (d, i, j, scale) {
-        return scale(yValue.call(null, d, i));
+      y: function (d, i, j, scale, accessor) {
+        return scale(accessor.call(null, d, i));
       },
       width: function (d, i, j, scale, data) {
         return scale.range()[1] / data.length;
       },
-      height: function (d, i, j, scale) {
-        return scale.range()[0] - scale(yValue.call(null, d, i));
+      height: function (d, i, j, scale, data, accessor) {
+        return scale.range()[0] - scale(accessor.call(null, d, i));
       },
       rx: 0,
       ry: 0,
-      fill: function (d, i) { return color(i); },
-      stroke: function (d, i) { return color(i); },
+      fill: function (d, i) { return i; },
+      stroke: function (d, i) { return i; },
       strokeWidth: 0,
       opacity: 1
     };
@@ -151,16 +151,16 @@ define(function (require) {
           .rx(rects.rx)
           .ry(rects.ry)
           .x(function (d, i, j) {
-            return rects.x.call(null, d, i, j, xScale, data);
+            return rects.x.call(null, d, i, j, xScale, xValue);
           })
           .width(function (d, i, j) {
-            return rects.width.call(null, d, i, j, xScale, data);
+            return rects.width.call(null, d, i, j, xScale, data, xValue);
           })
           .y(function (d, i, j) {
-            return rects.y.call(null, d, i, j, yScale, data);
+            return rects.y.call(null, d, i, j, yScale, yValue);
           })
           .height(function (d, i, j) {
-            return rects.height.call(null, d, i, j, yScale, data);
+            return rects.height.call(null, d, i, j, yScale, data, yValue);
           })
           .listeners(listeners);
 
