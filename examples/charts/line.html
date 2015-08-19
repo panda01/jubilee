@@ -71,6 +71,21 @@
         })
         .on("click", function (e) {
           console.log(e);
+        })
+        .on("mouseenter", function(e, d, i) {
+          console.log(e.type);
+          console.log(e);
+          console.log(d);
+        })
+        .on("mousemover", function(e, d, i) {
+          console.log(e.type);
+          console.log(e);
+          console.log(d);
+        })
+        .on("mouseleave", function(e, d, i) {
+          console.log(e.type);
+          console.log(e);
+          console.log(d);
         });
 
       var selection = d3.select("#chart");

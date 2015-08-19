@@ -22,6 +22,8 @@ define(function (require) {
     var listeners = {};
 
     // Public API
+    // A Key map of all of the elements we need handles on
+    this.elems = {};
     this.margin = function (_) {
       if (!arguments.length) { return margin; }
       margin = marginAPI(_, margin);
@@ -73,6 +75,9 @@ define(function (require) {
     this.on = addEventListener(this);
 
     this.off = removeEventListener(this);
+
+    // Override this function!!!
+    this.apply = function(that, selection) {};
 
     return this;
   };

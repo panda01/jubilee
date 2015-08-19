@@ -21,46 +21,49 @@ define(function (require) {
   var scaleAPI = require("src/modules/helpers/api/scale");
   var zeroLineAPI = require("src/modules/helpers/api/zero_line");
 
-  return function () {
-    var Series = require("src/modules/chart/series");
+  var Series = require("src/modules/chart/series");
 
-    function LineChart(selection) {
-      if (!(this instanceof LineChart)) {
-        return new LineChart(selection);
-      }
-      Series.apply(this, selection);
+  function LineChart(selection) {
+    if (!(this instanceof LineChart)) {
+      return new LineChart(selection);
+    }
+    Series.apply(this);
 
-      var xScale = this.xScale();
-      var yScale = this.yScale();
-      var xValue = this.x();
-      var yValue = this.y();
-      var color = this.color();
-      var interpolate = this.interpolate();
-      var tension = this.tension();
-      var defined = this.defined();
-      var listeners = this.listeners();
-      var clipPath = deepCopy(clipPathOptions, {});
+    var xScale = this.xScale();
+    var yScale = this.yScale();
+    var xValue = this.x();
+    var yValue = this.y();
+    var color = this.color();
+    var interpolate = this.interpolate();
+    var tension = this.tension();
+    var defined = this.defined();
+    var listeners = this.listeners();
+    var clipPath = deepCopy(clipPathOptions, {});
 
-      // Line Options
-      var lines = {
-        groupClass: "paths",
-        lineClass: "line",
-        stroke: function (d, i, j) { return i; },
-        strokeWidth: 3,
-        opacity: 1
-      };
+    // Line Options
+    var lines = {
+      groupClass: "paths",
+      lineClass: "line",
+      stroke: function (d, i, j) { return i; },
+      strokeWidth: 3,
+      opacity: 1
+    };
 
-      // Circle Options
-      var circles = {
-        show: false,
-        groupClass: "circle layer",
-        circleClass: "circle",
-        fill: function (d, i, j) { return j; },
-        stroke: null,
-        radius: 5,
-        strokeWidth: 3
-      };
+    // Circle Options
+    var circles = {
+      show: false,
+      groupClass: "circle layer",
+      circleClass: "circle",
+      fill: function (d, i, j) { return j; },
+      stroke: null,
+      radius: 5,
+      strokeWidth: 3
+    };
 
+    // Surprise, that(this) and selection are the same!!!
+    this.apply = function(selection) {
+      var that = this;
+      Series.prototype.apply.call(this, selection);
       selection.each(function (data, index) {
         var X = scaleValue(xScale, xValue);
         var Y = scaleValue(yScale, yValue);
@@ -79,6 +82,7 @@ define(function (require) {
           .opacity(lines.opacity)
           .listeners(listeners);
 
+        var g = that.elems.oldG;
         g.append("g")
           .attr("class", lines.groupClass)
           .call(linePath);
@@ -112,30 +116,33 @@ define(function (require) {
             .call(points);
         }
       });
-
-      // Public API
-      this.clipPath = function (_) {
-        if (!arguments.length) { return clipPath; }
-        clipPath = clippathAPI(_, clipPath);
-        return this;
-      };
-
-      this.lines = function (_) {
-        if (!arguments.length) { return lines; }
-        lines = linesAPI(_, lines);
-        return this;
-      };
-
-      this.circles = function (_) {
-        if (!arguments.length) { return circles; }
-        circles = circlesAPI(_, circles);
-        return this;
-      };
     }
 
-    debugger;
-    LineChart.prototype = Object.create(Series.prototype);
+    // Public API
+    this.clipPath = function (_) {
+      if (!arguments.length) { return clipPath; }
+      clipPath = clippathAPI(_, clipPath);
+      return this;
+    };
 
-    return LineChart;
+    this.lines = function (_) {
+      if (!arguments.length) { return lines; }
+      lines = linesAPI(_, lines);
+      return this;
+    };
+
+    this.circles = function (_) {
+      if (!arguments.length) { return circles; }
+      circles = circlesAPI(_, circles);
+      return this;
+    };
+  }
+
+
+  LineChart.prototype = new Series();
+
+  return function () {
+
+    return new LineChart();
   };
 });
