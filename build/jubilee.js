@@ -13370,7 +13370,6 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
           .defined(defined);
 
         var linePath = path()
-          .data([data])
           .pathGenerator(line)
           .class(lines.lineClass)
           .stroke(function (d, i, j) {

@@ -141,7 +141,6 @@ define(function (require) {
           .defined(defined);
 
         var linePath = path()
-          .data([data])
           .pathGenerator(line)
           .class(lines.lineClass)
           .stroke(function (d, i, j) {
