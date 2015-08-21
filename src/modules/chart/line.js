@@ -1,5 +1,6 @@
 define(function (require) {
   var d3 = require("d3");
+  var events = require("src/modules/component/events");
 
   var addEventListener = require("src/modules/helpers/add_event_listener");
   var axis = require("src/modules/component/axis");
@@ -8,7 +9,6 @@ define(function (require) {
   var clip = require("src/modules/element/svg/clipPath");
   var deepCopy = require("src/modules/helpers/deep_copy");
   var path = require("src/modules/element/svg/path");
-  var mapDomain = require("src/modules/helpers/map_domain");
   var removeEventListener = require("src/modules/helpers/remove_event_listener");
   var scaleValue = require("src/modules/helpers/scale_value");
   var zeroAxisLine = require("src/modules/element/svg/line");
@@ -71,11 +71,13 @@ define(function (require) {
       fill: function (d, i, j) { return j; },
       stroke: null,
       radius: 5,
-      strokeWidth: 3
+      strokeWidth: 3,
+      opacity: 1
     };
 
     function chart(selection) {
       selection.each(function (data, index) {
+        // Allows chart to accept an array or object
         data = accessor.call(this, data, index);
 
         width = this.getBoundingClientRect().width;
@@ -85,7 +87,7 @@ define(function (require) {
         var adjustedHeight = height - margin.top - margin.bottom;
 
         xScale = xScaleOpts.scale || d3.time.scale.utc();
-        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(data), xValue));
+        xScale.domain(xScaleOpts.domain || d3.extent(d3.merge(data), xValue));
 
         if (typeof xScale.rangeBands === "function") {
           xScale.rangeBands([0, adjustedWidth, 0.1]);
@@ -93,17 +95,19 @@ define(function (require) {
           xScale.range([0, adjustedWidth]);
         }
 
-        var yScaleDomain = yScaleOpts.domain || d3.extent(mapDomain(data), yValue);
+        var yScaleDomain = yScaleOpts.domain || d3.extent(d3.merge(data), yValue);
         if (yScaleDomain[0] === yScaleDomain[1]) {
           --yScaleDomain[0];
           ++yScaleDomain[1];
         }
         yScale = yScaleOpts.scale || d3.scale.linear();
-        yScale.domain(yScaleDomain)
+        yScale.domain(yScaleDomain);
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
+
+        var svgEvents = events().listeners(listeners).accessor(xValue);
 
         var svg = d3.select(this).selectAll("svg")
           .data([data]);
@@ -116,7 +120,8 @@ define(function (require) {
         svg.selectAll("g").remove();
 
         var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")")
+          .call(svgEvents);
 
         // Brush
         if (listeners.brush && listeners.brush.length) {
@@ -138,19 +143,18 @@ define(function (require) {
         var linePath = path()
           .data([data])
           .pathGenerator(line)
-          .cssClass(lines.lineClass)
+          .class(lines.lineClass)
           .stroke(function (d, i, j) {
             return color(lines.stroke.call(null, d, i, j));
           })
           .strokeWidth(lines.strokeWidth)
-          .opacity(lines.opacity)
-          .listeners(listeners);
+          .opacity(lines.opacity);
 
         if (axisX.show) {
           var xAxis = axis()
             .scale(xScale)
             .chartDimension(adjustedHeight)
-            .gClass(axisX.gClass)
+            .class(axisX.gClass)
             .transform(axisX.transform || "translate(0," + (yScale.range()[0] + 1) + ")")
             .tick(axisX.tick)
             .title(axisX.title);
@@ -163,7 +167,7 @@ define(function (require) {
             .scale(yScale)
             .chartDimension(adjustedWidth)
             .orient("left")
-            .gClass(axisY.gClass)
+            .class(axisY.gClass)
             .transform(axisY.transform || "translate(-1,0)")
             .tick(axisY.tick)
             .title(axisY.title);
@@ -178,7 +182,7 @@ define(function (require) {
 
         if (zeroLine.add) {
           var zLine = zeroAxisLine()
-            .cssClass(zeroLine.lineClass)
+            .class(zeroLine.lineClass)
             .x1(function () { return xScale.range()[0]; })
             .x2(function () { return xScale.range()[1]; })
             .y1(function () { return yScale(0); })
@@ -198,15 +202,14 @@ define(function (require) {
           var points = circle()
             .cx(X)
             .cy(Y)
-            .color(color)
             .radius(circles.radius)
-            .cssClass(circles.circleClass)
+            .class(circles.circleClass)
             .fill(function (d, i, j) {
               return circles.fill.call(null, d, i, j);
             })
             .stroke(circles.stroke ? circles.stroke : circles.fill)
             .strokeWidth(circles.strokeWidth)
-            .listeners(listeners);
+            .opacity(circles.opacity);
 
           g.call(clippath)
             .append("g")

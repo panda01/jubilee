@@ -1,28 +1,24 @@
 define(function (require) {
   var d3 = require("d3");
-  var events = require("src/modules/component/events");
 
   return function path() {
-    var pathGenerator = null;
-    var color = d3.scale.category10();
     var accessor = function (d) { return d; };
-    var values = null;
+    var pathGenerator = null;
 
     // Options
     var cssClass = "path";
     var transform = "translate(0,0)";
     var fill = "none";
-    var stroke = function (d, i) { return color(i); };
+    var stroke = function (d, i) { return d3.scale.category10()(i); };
     var strokeWidth = 1;
     var opacity = null;
-    var listeners = {};
 
     function element(selection) {
       selection.each(function (data, index) {
-        var pathEvents = events().listeners(listeners);
+        data = accessor.call(this, data, index);
 
         var path = d3.select(this).selectAll("path")
-          .data(values ? values.map(accessor) : accessor);
+          .data(data);
 
         path.exit().remove();
 
@@ -34,15 +30,13 @@ define(function (require) {
           .attr("stroke-width", strokeWidth)
           .attr("d", pathGenerator)
           .style("opacity", opacity);
-
-        path.call(pathEvents);
       });
     }
 
     // Public API
-    element.data = function (_) {
-      if (!arguments.length) { return values; }
-      values = _;
+    element.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
       return element;
     };
 
@@ -52,19 +46,7 @@ define(function (require) {
       return element;
     };
 
-    element.accessor = function (_) {
-      if (!arguments.length) { return accessor; }
-      accessor = _;
-      return element;
-    };
-
-    element.color = function (_) {
-      if (!arguments.length) { return color; }
-      color = _;
-      return element;
-    };
-
-    element.cssClass = function (_) {
+    element.class = function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
       return element;
@@ -90,19 +72,13 @@ define(function (require) {
 
     element.stroke = function (_) {
       if (!arguments.length) { return stroke; }
-      stroke = _;
+      stroke = d3.functor(_);
       return element;
     };
 
     element.strokeWidth = function (_) {
       if (!arguments.length) { return strokeWidth; }
       strokeWidth = _;
-      return element;
-    };
-
-    element.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
       return element;
     };
 
