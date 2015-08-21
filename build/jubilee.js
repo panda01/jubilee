@@ -10008,6 +10008,62 @@ define("src/require.config", function(){});
 };
 
 /**
+ * Adds event listeners to DOM elements
+ */
+define('src/modules/component/events',['require','d3'],function (require) {
+  var d3 = require("d3");
+
+  return function events() {
+    var accessor = function (d) { return d.x; };
+    var listeners = {};
+
+    function component(selection) {
+      selection.each(function (data, index) {
+        var element = d3.select(this);
+        var bisect = d3.bisector(accessor).left;
+
+        d3.entries(listeners).forEach(function (e, i) {
+
+          // Stop listening for event types that have an empty listeners
+          // array or are set to null
+          if (!e.value || !e.value.length) {
+            return element.on(e.key, null);
+          }
+
+          element.on(e.key, function (d, i) {
+            d3.event.stopPropagation(); // => event.stopPropagation()
+
+            e.value.forEach(function (listener) {
+              // References the data point to calculate the correct index value
+              var target = d3.select(d3.event.target);
+              var parentDatum = d3.select(target.node().parentNode).datum();
+              var datum = target.datum();
+              var index = bisect(parentDatum, accessor.call(null, datum));
+
+              listener.call(this, d3.event, datum, index);
+            });
+          });
+        });
+      });
+    }
+
+    // Public API
+    component.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
+      return component;
+    };
+
+    component.listeners = function (_) {
+      if (!arguments.length) { return listeners; }
+      listeners = _;
+      return component;
+    };
+
+    return component;
+  };
+});
+/**
  * Returns a function that adds an eventType, e.g. click, brush, mouseover
  * and event listener, e.g. function (e) { console.log(e); }
  * to an event object, e.g. { "click": [ listener1, listener2], "brush": [ listener1 ], ... }.
@@ -10058,7 +10114,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
     var gClass = "axis";
 
     var title = {
-      titleClass: "axis title",
+      class: "axis title",
       x: 6,
       y: 6,
       dx: "",
@@ -10094,7 +10150,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
           .style("text-anchor", tick.text.anchor);
 
         g.append("text")
-          .attr("class", title.titleClass)
+          .attr("class", title.class)
           .attr("x", title.x)
           .attr("y", title.y)
           .attr("dx", title.dx)
@@ -10143,7 +10199,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
       return component;
     };
 
-    component.gClass = function (_) {
+    component.class = function (_) {
       if (!arguments.length) { return gClass; }
       gClass = _;
       return component;
@@ -10157,7 +10213,7 @@ define('src/modules/component/axis',['require','d3'],function (require) {
 
     component.title = function (_) {
       if (!arguments.length) { return title; }
-      title.titleClass = typeof _.titleClass !== "undefined" ? _.titleClass : title.titleClass;
+      title.class = typeof _.class !== "undefined" ? _.class : title.class;
       title.x = typeof _.x !== "undefined" ? _.x : title.x;
       title.y = typeof _.y !== "undefined" ? _.y : title.y;
       title.dx = typeof _.dx !== "undefined" ? _.dx : title.dx;
@@ -10218,14 +10274,12 @@ define('src/modules/component/brush',['require','d3'],function (require) {
             });
           });
 
-        var svg = d3.select(this);
-
         if (xScale) { brush.x(xScale); }
         if (yScale) { brush.y(yScale); }
         if (extent) { brush.extent(extent); }
         if (clamp) { brush.clamp(clamp); }
 
-        var brushG = svg.append("g")
+        var brushG = d3.select(this).append("g")
           .attr("class", cssClass)
           .attr("opacity", opacity)
           .call(brush)
@@ -10264,7 +10318,7 @@ define('src/modules/component/brush',['require','d3'],function (require) {
       return component;
     };
 
-    component.cssClass = function (_) {
+    component.class = function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
       return component;
@@ -10426,22 +10480,104 @@ define('src/modules/helpers/deep_copy',[],function () {
     return child;
   };
 });
-/**
- * Concatenates arrays of arrays
- */
-define('src/modules/helpers/map_domain',[],function () {
-  return function (data) {
-    var isArrayOfArrays = data.every(function (obj) {
-      return Array.isArray(obj);
-    });
+define('src/modules/element/svg/path',['require','d3'],function (require) {
+  var d3 = require("d3");
 
-    if (!isArrayOfArrays) { return data; }
-    return data.reduce(function (a, b) {
-      return a.concat(b);
-    }, []);
+  return function path() {
+    var accessor = function (d) { return d; };
+    var pathGenerator = null;
+
+    // Options
+    var cssClass = "path";
+    var transform = "translate(0,0)";
+    var fill = "none";
+    var stroke = function (d, i) { return d3.scale.category10()(i); };
+    var strokeWidth = 1;
+    var opacity = null;
+
+    function element(selection) {
+      selection.each(function (data, index) {
+        data = accessor.call(this, data, index);
+
+        var path = d3.select(this).selectAll("path")
+          .data(data);
+
+        path.exit().remove();
+
+        path.enter().append("path")
+          .attr("transform", transform)
+          .attr("class", cssClass)
+          .attr("fill", fill)
+          .attr("stroke", stroke)
+          .attr("stroke-width", strokeWidth)
+          .attr("d", pathGenerator)
+          .style("opacity", opacity);
+      });
+    }
+
+    // Public API
+    element.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
+      return element;
+    };
+
+    element.pathGenerator = function (_) {
+      if (!arguments.length) { return pathGenerator; }
+      pathGenerator = _;
+      return element;
+    };
+
+    element.class = function (_) {
+      if (!arguments.length) { return cssClass; }
+      cssClass = _;
+      return element;
+    };
+
+    element.transform = function (_) {
+      if (!arguments.length) { return transform; }
+      transform = _;
+      return element;
+    };
+
+    element.fill = function (_) {
+      if (!arguments.length) { return fill; }
+      fill = _;
+      return element;
+    };
+
+    element.opacity = function (_) {
+      if (!arguments.length) { return opacity; }
+      opacity = _;
+      return element;
+    };
+
+    element.stroke = function (_) {
+      if (!arguments.length) { return stroke; }
+      stroke = d3.functor(_);
+      return element;
+    };
+
+    element.strokeWidth = function (_) {
+      if (!arguments.length) { return strokeWidth; }
+      strokeWidth = _;
+      return element;
+    };
+
+    return element;
   };
 });
 
+/**
+ * Returns a function that applies a scale to the returned value of a callback function.
+ */
+define('src/modules/helpers/scale_value',[],function () {
+  return function (scale, func) {
+    return function (d, i) {
+      return scale(func.call(null, d, i));
+    };
+  };
+});
 /**
  * Returns a function that removes event types, e.g: click, brush, mouseover, etc.
  * and event listeners, e.g. function (e) { console.log(e); }
@@ -10468,219 +10604,27 @@ define('src/modules/helpers/remove_event_listener',[],function () {
     };
   };
 });
-/**
- * Adds event listeners to DOM elements
- */
-define('src/modules/component/events',['require','d3','src/modules/helpers/add_event_listener','src/modules/helpers/remove_event_listener'],function (require) {
+define('src/modules/element/svg/line',['require','d3'],function (require) {
   var d3 = require("d3");
-  var addEventListener = require("src/modules/helpers/add_event_listener");
-  var removeEventListener = require("src/modules/helpers/remove_event_listener");
-
-  return function events() {
-    var listeners = {};
-
-    function component(selection) {
-      selection.each(function (data, index) {
-        var element = d3.select(this);
-
-        Object.keys(listeners).forEach(function (eventType) {
-
-          // Stop listening for event types that have an empty listeners
-          // array or are set to null
-          if (!listeners[eventType] || !listeners[eventType].length) {
-            return element.on(eventType, null);
-          }
-
-          element.on(eventType, function (d, i) {
-            d3.event.stopPropagation(); // => event.stopPropagation()
-            listeners[eventType].forEach(function (listener) {
-              listener.call(this, d3.event, d, i);
-            });
-          });
-        });
-      });
-    }
-
-    function sumListeners(listeners) {
-      return Object.keys(listeners).map(function (event) {
-        return listeners[event].length;
-      }).reduce(function (a, b) {
-        return a + b;
-      }, 0);
-    }
-
-    // Public API
-    component.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
-      return component;
-    };
-
-    component.listenerCount = function (_) {
-      if (!arguments.length) { return sumListeners(listeners); }
-      if (!listeners[_]) { return 0; }
-      return listeners[_].length;
-    };
-
-    component.on = addEventListener(component);
-
-    component.off = removeEventListener(component);
-
-    component.activeEvents = function () {
-      return Object.keys(listeners).filter(function (event) {
-        return listeners[event].length;
-      });
-    };
-
-    return component;
-  };
-});
-define('src/modules/element/svg/path',['require','d3','src/modules/component/events'],function (require) {
-  var d3 = require("d3");
-  var events = require("src/modules/component/events");
-
-  return function path() {
-    var pathGenerator = null;
-    var color = d3.scale.category10();
-    var accessor = function (d) { return d; };
-    var values = null;
-
-    // Options
-    var cssClass = "path";
-    var transform = "translate(0,0)";
-    var fill = "none";
-    var stroke = function (d, i) { return color(i); };
-    var strokeWidth = 1;
-    var opacity = null;
-    var listeners = {};
-
-    function element(selection) {
-      selection.each(function (data, index) {
-        var pathEvents = events().listeners(listeners);
-
-        var path = d3.select(this).selectAll("path")
-          .data(values ? values.map(accessor) : accessor);
-
-        path.exit().remove();
-
-        path.enter().append("path")
-          .attr("transform", transform)
-          .attr("class", cssClass)
-          .attr("fill", fill)
-          .attr("stroke", stroke)
-          .attr("stroke-width", strokeWidth)
-          .attr("d", pathGenerator)
-          .style("opacity", opacity);
-
-        path.call(pathEvents);
-      });
-    }
-
-    // Public API
-    element.data = function (_) {
-      if (!arguments.length) { return values; }
-      values = _;
-      return element;
-    };
-
-    element.pathGenerator = function (_) {
-      if (!arguments.length) { return pathGenerator; }
-      pathGenerator = _;
-      return element;
-    };
-
-    element.accessor = function (_) {
-      if (!arguments.length) { return accessor; }
-      accessor = _;
-      return element;
-    };
-
-    element.color = function (_) {
-      if (!arguments.length) { return color; }
-      color = _;
-      return element;
-    };
-
-    element.cssClass = function (_) {
-      if (!arguments.length) { return cssClass; }
-      cssClass = _;
-      return element;
-    };
-
-    element.transform = function (_) {
-      if (!arguments.length) { return transform; }
-      transform = _;
-      return element;
-    };
-
-    element.fill = function (_) {
-      if (!arguments.length) { return fill; }
-      fill = _;
-      return element;
-    };
-
-    element.opacity = function (_) {
-      if (!arguments.length) { return opacity; }
-      opacity = _;
-      return element;
-    };
-
-    element.stroke = function (_) {
-      if (!arguments.length) { return stroke; }
-      stroke = _;
-      return element;
-    };
-
-    element.strokeWidth = function (_) {
-      if (!arguments.length) { return strokeWidth; }
-      strokeWidth = _;
-      return element;
-    };
-
-    element.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
-      return element;
-    };
-
-    return element;
-  };
-});
-
-/**
- * Returns a function that applies a scale to the returned value of a callback function.
- */
-define('src/modules/helpers/scale_value',[],function () {
-  return function (scale, func) {
-    return function (d, i) {
-      return scale(func.call(null, d, i));
-    };
-  };
-});
-define('src/modules/element/svg/line',['require','d3','src/modules/component/events'],function (require) {
-  var d3 = require("d3");
-  var events = require("src/modules/component/events");
 
   return function line() {
-    var x1 = null;
-    var x2 = null;
-    var y1 = null;
-    var y2 = null;
-    var color = d3.scale.category10();
-    var values = null;
+    var accessor = function (d) { return d; };
+    var x1 = 0;
+    var x2 = 0;
+    var y1 = 0;
+    var y2 = 0;
 
     var cssClass = "line";
-    var stroke = null;
+    var stroke = colorFill;
     var strokeWidth = 2;
-    var opacity = null;
-    var listeners = {};
+    var opacity = 1;
 
     function element(selection) {
       selection.each(function (data, index) {
-        var lineEvents = events().listeners(listeners);
+        data = accessor.call(this, data, index);
 
         var lines = d3.select(this).selectAll("lines")
-          .data(values ? values : data);
+          .data(data);
 
         // Exit
         lines.exit().remove();
@@ -10695,22 +10639,20 @@ define('src/modules/element/svg/line',['require','d3','src/modules/component/eve
           .attr("x2", x2)
           .attr("y1", y1)
           .attr("y2", y2)
-          .attr("stroke", stroke ? stroke : colorFill)
+          .attr("stroke", stroke)
           .attr("stroke-width", strokeWidth)
           .style("opacity", opacity);
-
-        lines.call(lineEvents);
       });
     }
 
     function colorFill(d, i) {
-      return color(i);
+      return d3.scale.category10()(i);
     }
 
     // Public API
-    element.data = function (_) {
-      if (!arguments.length) { return values; }
-      values = _;
+    element.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
       return element;
     };
     
@@ -10738,13 +10680,7 @@ define('src/modules/element/svg/line',['require','d3','src/modules/component/eve
       return element;
     };
 
-    element.color = function (_) {
-      if (!arguments.length) { return color; }
-      color = _;
-      return element;
-    };
-
-    element.cssClass = function (_) {
+    element.class = function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
       return element;
@@ -10765,12 +10701,6 @@ define('src/modules/element/svg/line',['require','d3','src/modules/component/eve
     element.strokeWidth = function (_) {
       if (!arguments.length) { return strokeWidth; }
       strokeWidth = _;
-      return element;
-    };
-
-    element.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
       return element;
     };
 
@@ -11014,15 +10944,15 @@ define('src/modules/helpers/api/zero_line',[],function () {
   };
 });
 
-define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/helpers/map_domain','src/modules/element/svg/path','src/modules/helpers/scale_value','src/modules/helpers/remove_event_listener','src/modules/element/svg/line','src/modules/helpers/options/clippath','src/modules/helpers/options/margin','src/modules/helpers/options/scale','src/modules/helpers/options/stack','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/area','src/modules/helpers/api/lines','src/modules/helpers/api/margin','src/modules/helpers/api/scale','src/modules/helpers/api/stack','src/modules/helpers/api/clippath','src/modules/helpers/api/zero_line'],function (require) {
+define('src/modules/chart/area',['require','d3','src/modules/component/events','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/element/svg/path','src/modules/helpers/scale_value','src/modules/helpers/remove_event_listener','src/modules/element/svg/line','src/modules/helpers/options/clippath','src/modules/helpers/options/margin','src/modules/helpers/options/scale','src/modules/helpers/options/stack','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/area','src/modules/helpers/api/lines','src/modules/helpers/api/margin','src/modules/helpers/api/scale','src/modules/helpers/api/stack','src/modules/helpers/api/clippath','src/modules/helpers/api/zero_line'],function (require) {
   var d3 = require("d3");
+  var events = require("src/modules/component/events");
 
   var addEventListener = require("src/modules/helpers/add_event_listener");
   var axis = require("src/modules/component/axis");
   var brushComponent = require("src/modules/component/brush");
   var clip = require("src/modules/element/svg/clipPath");
   var deepCopy = require("src/modules/helpers/deep_copy");
-  var mapDomain = require("src/modules/helpers/map_domain");
   var path = require("src/modules/element/svg/path");
   var scaleValue = require("src/modules/helpers/scale_value");
   var removeEventListener = require("src/modules/helpers/remove_event_listener");
@@ -11109,11 +11039,12 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
           .offset(stackOpts.offset)
           .order(stackOpts.order)
           .out(stackOpts.out);
+
         var layers = stack(data);
 
         // Scales
         xScale = xScaleOpts.scale || d3.time.scale.utc();
-        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(layers), xValue));
+        xScale.domain(xScaleOpts.domain || d3.extent(d3.merge(layers), xValue));
 
         if (xScale.rangeBands) {
           xScale.rangeBands([0, adjustedWidth], 0.1);
@@ -11123,13 +11054,15 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
 
         yScale = yScaleOpts.scale || d3.scale.linear();
         yScale.domain(yScaleOpts.domain || [
-            Math.min(0, d3.min(mapDomain(layers), Y)),
-            Math.max(0, d3.max(mapDomain(layers), Y))
+            Math.min(0, d3.min(d3.merge(layers), Y)),
+            Math.max(0, d3.max(d3.merge(layers), Y))
           ])
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
+
+        var svgEvents = events().listeners(listeners).accessor(xValue);
 
         // Canvas
         var svg = d3.select(this).selectAll("svg")
@@ -11137,8 +11070,10 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
           .enter().append("svg")
           .attr("width", width)
           .attr("height", height);
+
         var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")")
+          .call(svgEvents);
 
         // Brush
         if (listeners.brush && listeners.brush.length) {
@@ -11152,20 +11087,22 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
 
         // Add clippath and areas
         var X = scaleValue(xScale, xValue);
+
         var clippath = clip()
           .width(clipPath.width || adjustedWidth)
           .height(clipPath.height || adjustedHeight);
+
         var area = d3.svg.area().x(X).y0(Y0).y1(Y1)
           .interpolate(interpolate)
           .defined(defined);
+
         var areaPath = path()
           .pathGenerator(area)
-          .cssClass(areas.areaClass)
+          .class(areas.areaClass)
           .stroke(areas.stroke)
           .strokeWidth(areas.strokeWidth)
           .fill(areas.fill)
-          .opacity(areas.opacity)
-          .listeners(listeners);
+          .opacity(areas.opacity);
 
         g.call(clippath)
           .append("g")
@@ -11178,9 +11115,10 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
           var line = d3.svg.line().x(X).y(Y1)
             .interpolate(interpolate)
             .defined(defined);
+
           var linePath = path()
             .pathGenerator(line)
-            .cssClass(lines.lineClass)
+            .class(lines.lineClass)
             .stroke(lines.stroke)
             .strokeWidth(lines.strokeWidth)
             .opacity(lines.opacity);
@@ -11191,7 +11129,7 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
         // Zero-line
         if (zeroLine.add) {
           var zLine = zeroAxisLine()
-            .cssClass(zeroLine.lineClass)
+            .class(zeroLine.lineClass)
             .x1(function () { return xScale.range()[0]; })
             .x2(function () { return xScale.range()[1]; })
             .y1(function () { return yScale(0); })
@@ -11207,7 +11145,7 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
         if (axisX.show) {
           var xAxis = axis()
             .scale(xScale)
-            .gClass(axisX.gClass)
+            .class(axisX.gClass)
             .transform(axisX.transform || "translate(0," + (yScale.range()[0] + 1) + ")")
             .tick(axisX.tick)
             .title(axisX.title);
@@ -11220,7 +11158,7 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
           var yAxis = axis()
             .scale(yScale)
             .orient("left")
-            .gClass(axisY.gClass)
+            .class(axisY.gClass)
             .transform(axisY.transform || "translate(-1,0)")
             .tick(axisY.tick)
             .title(axisY.title);
@@ -11372,34 +11310,31 @@ define('src/modules/chart/area',['require','d3','src/modules/helpers/add_event_l
     return chart;
   };
 });
-define('src/modules/element/svg/rect',['require','d3','src/modules/component/events'],function (require) {
+define('src/modules/element/svg/rect',['require','d3'],function (require) {
   var d3 = require("d3");
-  var events = require("src/modules/component/events");
 
   return function rect() {
+    var accessor = function (d) { return d; };
     var x = function (d) { return d.x; };
     var y = function (d) { return d.y; };
     var rx = 0;
     var ry = 0;
     var width = null;
     var height = null;
-    var values = null;
 
     // Options
-    var color = d3.scale.category10();
     var cssClass = "bar";
-    var fill = null;
-    var stroke = null;
+    var fill = colorFill;
+    var stroke = colorFill;
     var strokeWidth = 0;
-    var opacity = null;
-    var listeners = {};
+    var opacity = 1;
 
     function element(selection) {
       selection.each(function (data, index) {
-        var rectEvents = events().listeners(listeners);
+        data = accessor.call(this, data, index);
 
         var bars = d3.select(this).selectAll("rect")
-          .data(values ? values : data);
+          .data(data);
 
         bars.exit().remove();
 
@@ -11407,8 +11342,8 @@ define('src/modules/element/svg/rect',['require','d3','src/modules/component/eve
 
         bars
           .attr("class", cssClass)
-          .attr("fill", fill ? fill : colorFill)
-          .attr("stroke", stroke ? stroke : colorFill)
+          .attr("fill", fill)
+          .attr("stroke", stroke)
           .attr("stroke-width", strokeWidth)
           .attr("x", x)
           .attr("y", y)
@@ -11417,19 +11352,17 @@ define('src/modules/element/svg/rect',['require','d3','src/modules/component/eve
           .attr("width", width)
           .attr("height", height)
           .style("opacity", opacity);
-
-        bars.call(rectEvents);
       });
     }
 
     function colorFill(d, i) {
-      return color(i);
+      return d3.scale.category10()(i);
     }
 
     // Public API
-    element.data = function (_) {
-      if (!arguments.length) { return values; }
-      values = _;
+    element.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
       return element;
     };
 
@@ -11469,7 +11402,7 @@ define('src/modules/element/svg/rect',['require','d3','src/modules/component/eve
       return element;
     };
 
-    element.cssClass= function (_) {
+    element.class= function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
       return element;
@@ -11487,12 +11420,6 @@ define('src/modules/element/svg/rect',['require','d3','src/modules/component/eve
       return element;
     };
 
-    element.color = function (_) {
-      if (!arguments.length) { return color; }
-      color = _;
-      return element;
-    };
-
     element.stroke = function (_) {
       if (!arguments.length) { return stroke; }
       stroke = _;
@@ -11502,12 +11429,6 @@ define('src/modules/element/svg/rect',['require','d3','src/modules/component/eve
     element.strokeWidth = function (_) {
       if (!arguments.length) { return strokeWidth; }
       strokeWidth = _;
-      return element;
-    };
-
-    element.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
       return element;
     };
 
@@ -11533,7 +11454,7 @@ define('src/modules/helpers/api/rect',[],function () {
   };
 });
 
-define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/helpers/map_domain','src/modules/element/svg/rect','src/modules/helpers/remove_event_listener','src/modules/element/svg/line','src/modules/helpers/options/scale','src/modules/helpers/api/stack','src/modules/helpers/options/stack','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/api/zero_line','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/clippath','src/modules/helpers/options/clippath','src/modules/helpers/api/margin','src/modules/helpers/options/margin','src/modules/helpers/api/rect','src/modules/helpers/api/scale'],function (require) {
+define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/element/svg/rect','src/modules/helpers/remove_event_listener','src/modules/element/svg/line','src/modules/helpers/options/scale','src/modules/helpers/api/stack','src/modules/helpers/options/stack','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/api/zero_line','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/clippath','src/modules/helpers/options/clippath','src/modules/helpers/api/margin','src/modules/helpers/options/margin','src/modules/helpers/api/rect','src/modules/helpers/api/scale'],function (require) {
   var d3 = require("d3");
 
   var addEventListener = require("src/modules/helpers/add_event_listener");
@@ -11541,7 +11462,6 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
   var brushComponent = require("src/modules/component/brush");
   var clip = require("src/modules/element/svg/clipPath");
   var deepCopy = require("src/modules/helpers/deep_copy");
-  var mapDomain = require("src/modules/helpers/map_domain");
   var rect = require("src/modules/element/svg/rect");
   var removeEventListener = require("src/modules/helpers/remove_event_listener");
   var zeroAxisLine = require("src/modules/element/svg/line");
@@ -11630,7 +11550,7 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
         var scaleData = data.map(values);
 
         xScale = xScaleOpts.scale || d3.time.scale.utc();
-        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(scaleData), xValue));
+        xScale.domain(xScaleOpts.domain || d3.extent(d3.merge(scaleData), xValue));
 
         if (typeof xScale.rangeBands === "function") {
           xScale.rangeBands([0, adjustedWidth, 0.1]);
@@ -11640,8 +11560,8 @@ define('src/modules/chart/bar',['require','d3','src/modules/helpers/add_event_li
 
         yScale = yScaleOpts.scale || d3.scale.linear();
         yScale.domain(yScaleOpts.domain || [
-            Math.min(0, d3.min(mapDomain(scaleData), yStackValue)),
-            Math.max(0, d3.max(mapDomain(scaleData), yStackValue))
+            Math.min(0, d3.min(d3.merge(scaleData), yStackValue)),
+            Math.max(0, d3.max(d3.merge(scaleData), yStackValue))
           ])
           .range([adjustedHeight, 0]);
 
@@ -11921,7 +11841,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
       width: 20,
       height: null,
       y: null,
-      boxClass: "range",
+      class: "range",
       fill: "white",
       stroke: "black",
       strokeWidth: "2px"
@@ -11933,7 +11853,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
       x2: 0,
       y1: null,
       y2: null,
-      rangeClass: "range",
+      class: "range",
       stroke: "black",
       strokeWidth: "4px"
     };
@@ -11942,7 +11862,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
     var max = {
       y1: null,
       y2: null,
-      maxClass: "max",
+      class: "max",
       stroke: "black",
       strokeWidth: "4px"
     };
@@ -11951,7 +11871,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
     var min = {
       y1: null,
       y2: null,
-      minClass: "min",
+      class: "min",
       stroke: "black",
       strokeWidth: "4px"
     };
@@ -11960,7 +11880,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
     var median = {
       y1: 0,
       y2: 0,
-      medianClass: "median",
+      class: "median",
       stroke: "darkgrey",
       strokeWidth: "4px"
     };
@@ -11985,7 +11905,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
             var g = d3.select(this);
 
             g.append("line")
-              .attr("class", range.rangeClass)
+              .attr("class", range.class)
               .attr("x1", range.x1)
               .attr("x2", range.x2)
               .attr("y1", range.y1)
@@ -11994,7 +11914,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
               .style("stroke-boxWidth", range.strokeWidth);
 
             g.append("line")
-              .attr("class", max.maxClass)
+              .attr("class", max.class)
               .attr("x1", maxX1)
               .attr("x2", maxX2)
               .attr("y1", max.y1)
@@ -12003,7 +11923,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
               .style("stroke-boxWidth", max.strokeWidth);
 
             g.append("line")
-              .attr("class", min.minClass)
+              .attr("class", min.class)
               .attr("x1", minX1)
               .attr("x2", minX2)
               .attr("y1", min.y1)
@@ -12012,7 +11932,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
               .style("stroke-boxWidth", min.strokeWidth);
 
             g.append("rect")
-              .attr("class", box.boxClass)
+              .attr("class", box.class)
               .attr("x", boxX)
               .attr("y", box.y)
               .attr("width", box.width)
@@ -12022,7 +11942,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
               .style("stroke-boxWidth", box.strokeWidth);
 
             g.append("line")
-              .attr("class", median.medianClass)
+              .attr("class", median.class)
               .attr("x1", medianX1)
               .attr("x2", medianX2)
               .attr("y1", median.y1)
@@ -12050,7 +11970,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
       box.width = typeof _.width !== "undefined" ? _.width : box.width;
       box.height = typeof _.height !== "undefined" ? _.height : box.height;
       box.y = typeof _.y !== "undefined" ? _.y : box.y;
-      box.boxClass = typeof _.boxClass !== "undefined" ? _.boxClass : box.boxClass;
+      box.class = typeof _.class !== "undefined" ? _.class : box.class;
       box.fill = typeof _.fill !== "undefined" ? _.fill : box.fill;
       box.stroke = typeof _.stroke !== "undefined" ? _.stroke : box.stroke;
       box.strokeWidth = typeof _.strokeWidth !== "undefined" ? _.strokeWidth : box.strokeWidth;
@@ -12063,7 +11983,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
       range.x2 = typeof _.x2!== "undefined" ? _.x2 : range.x2;
       range.y1 = typeof _.y1 !== "undefined" ? _.y1 : range.y1;
       range.y2 = typeof _.y2 !== "undefined" ? _.y2 : range.y2;
-      range.rangeClass = typeof _.rangeClass !== "undefined" ? _.rangeClass : range.rangeClass;
+      range.class = typeof _.class !== "undefined" ? _.class : range.class;
       range.stroke = typeof _.stroke !== "undefined" ? _.stroke : range.stroke;
       range.strokeWidth = typeof _.strokeWidth !== "undefined" ? _.strokeWidth : range.strokeWidth;
       return component;
@@ -12073,7 +11993,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
       if (!arguments.length) { return max; }
       max.y1 = typeof _.y1 !== "undefined" ? _.y1 : max.y1;
       max.y2 = typeof _.y2 !== "undefined" ? _.y2 : max.y2;
-      max.maxClass = typeof _.maxClass !== "undefined" ? _.maxClass : max.maxClass;
+      max.class = typeof _.class !== "undefined" ? _.class : max.class;
       max.stroke = typeof _.stroke !== "undefined" ? _.stroke : max.stroke;
       max.strokeWidth = typeof _.strokeWidth !== "undefined" ? _.strokeWidth : max.strokeWidth;
       return component;
@@ -12083,7 +12003,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
       if (!arguments.length) { return min; }
       min.y1 = typeof _.y1 !== "undefined" ? _.y1 : min.y1;
       min.y2 = typeof _.y2 !== "undefined" ? _.y2 : min.y2;
-      min.minClass = typeof _.minClass !== "undefined" ? _.minClass : min.minClass;
+      min.class = typeof _.class !== "undefined" ? _.class : min.class;
       min.stroke = typeof _.stroke !== "undefined" ? _.stroke : min.stroke;
       min.strokeWidth = typeof _.strokeWidth !== "undefined" ? _.strokeWidth : min.strokeWidth;
       return component;
@@ -12093,7 +12013,7 @@ define('src/modules/component/boxplot',['require','d3'],function (require) {
       if (!arguments.length) { return median; }
       median.y1 = typeof _.y1 !== "undefined" ? _.y1 : median.y1;
       median.y2 = typeof _.y2 !== "undefined" ? _.y2 : median.y2;
-      median.medianClass = typeof _.medianClass !== "undefined" ? _.medianClass : median.medianClass;
+      median.class = typeof _.class !== "undefined" ? _.class : median.class;
       median.stroke = typeof _.stroke !== "undefined" ? _.stroke : median.stroke;
       median.strokeWidth = typeof _.strokeWidth !== "undefined" ? _.strokeWidth : median.strokeWidth;
       return component;
@@ -12163,8 +12083,8 @@ define('src/modules/chart/boxplot',['require','d3','src/modules/layout/box','src
 
         yScale = yScale ? yScale : d3.scale.linear()
           .domain([
-            Math.min(0, d3.min(mapDomain(data))),
-            Math.max(0, d3.max(mapDomain(data)))
+            Math.min(0, d3.min(d3.merge(data))),
+            Math.max(0, d3.max(d3.merge(data)))
           ])
           .range([height, 0]);
 
@@ -12221,14 +12141,6 @@ define('src/modules/chart/boxplot',['require','d3','src/modules/layout/box','src
 
     function Y2(d) {
       return yScale(d.min) - yScale(d.median);
-    }
-
-    function mapDomain(data) {
-      return data.map(function (d, i) {
-        return accessor.call(this, values.call(this, d, i));
-      }).reduce(function (a, b) {
-        return a.concat(b);
-      });
     }
 
     function gTransform(d, i) {
@@ -12603,7 +12515,7 @@ define('src/modules/element/canvas/rect',['require','d3'],function (require) {
     }
 
     // Public API
-    element.cssClass = function (_) {
+    element.class = function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
       return element;
@@ -12988,8 +12900,8 @@ define('src/modules/chart/histogram',['require','d3'],function (require) {
           });
         });
 
-        xScale.domain(xDomain.call(mapDomain(layers)));
-        yScale.domain(yDomain.call(mapDomain(layers)));
+        xScale.domain(xDomain.call(d3.merge(layers)));
+        yScale.domain(yDomain.call(d3.merge(layers)));
 
         svg = d3.select(this).append("svg")
           .data([layers])
@@ -13073,12 +12985,6 @@ define('src/modules/chart/histogram',['require','d3'],function (require) {
 
     function Y(d) {
       return yScale(d.y0 + d.y);
-    }
-
-    function mapDomain(data) {
-      return data.reduce(function (a, b) {
-        return a.concat(b);
-      });
     }
 
     function getYStackExtent(data, extent) {
@@ -13201,32 +13107,28 @@ define('src/modules/chart/histogram',['require','d3'],function (require) {
     return chart;
   };
 });
-define('src/modules/element/svg/circle',['require','d3','src/modules/component/events'],function (require) {
+define('src/modules/element/svg/circle',['require','d3'],function (require) {
   var d3 = require("d3");
-  var events = require("src/modules/component/events");
 
   return function circle() {
+    var accessor = function (d) { return d; };
     var cx = function (d) { return d.x; };
     var cy = function (d) { return d.y; };
     var radius = 5;
-    var color = d3.scale.category10();
-    var values = null;
 
     // Options
     var cssClass = "circles";
-    var fill = null;
-    var stroke = null;
+    var fill = colorFill;
+    var stroke = colorFill;
     var strokeWidth = 0;
     var opacity = null;
-    var listeners = {};
 
     function element(selection) {
       selection.each(function (data, index) {
-        var circleEvents = events()
-          .listeners(listeners);
+        data = accessor.call(this, data, index);
 
         var circles = d3.select(this).selectAll("circle")
-          .data(values ? values : data);
+          .data(data);
 
         // Exit
         circles.exit().remove();
@@ -13238,26 +13140,24 @@ define('src/modules/element/svg/circle',['require','d3','src/modules/component/e
         // Update
         circles
           .attr("class", cssClass)
-          .attr("fill", fill ? fill : colorFill)
-          .attr("stroke", stroke ? stroke : colorFill)
+          .attr("fill", fill)
+          .attr("stroke", stroke)
           .attr("stroke-width", strokeWidth)
           .attr("r", radius)
           .attr("cx", cx)
           .attr("cy", cy)
           .style("opacity", opacity);
-
-        circles.call(circleEvents);
       });
     }
 
     function colorFill (d, i) {
-      return color(i);
+      return d3.scale.category10()(i);
     }
 
     // Public API
-    element.data = function (_) {
-      if (!arguments.length) { return values; }
-      values = _;
+    element.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
       return element;
     };
 
@@ -13279,15 +13179,9 @@ define('src/modules/element/svg/circle',['require','d3','src/modules/component/e
       return element;
     };
 
-    element.cssClass = function (_) {
+    element.class = function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
-      return element;
-    };
-
-    element.color = function (_) {
-      if (!arguments.length) { return color; }
-      color = _;
       return element;
     };
 
@@ -13315,12 +13209,6 @@ define('src/modules/element/svg/circle',['require','d3','src/modules/component/e
       return element;
     };
 
-    element.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
-      return element;
-    };
-
     return element;
   };
 });
@@ -13334,12 +13222,14 @@ define('src/modules/helpers/api/circles',[],function () {
     circles.fill = typeof _.fill !== "undefined" ? _.fill : circles.fill;
     circles.stroke = typeof _.stroke !== "undefined" ? _.stroke : circles.stroke;
     circles.strokeWidth = typeof _.strokeWidth !== "undefined" ? _.strokeWidth : circles.strokeWidth;
+    circles.opacity = typeof _.opacity !== "undefined" ? _.opacity : circles.opacity;
 
     return circles;
   };
 });
-define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/circle','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/element/svg/path','src/modules/helpers/map_domain','src/modules/helpers/remove_event_listener','src/modules/helpers/scale_value','src/modules/element/svg/line','src/modules/helpers/options/clippath','src/modules/helpers/options/margin','src/modules/helpers/options/scale','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/circles','src/modules/helpers/api/clippath','src/modules/helpers/api/lines','src/modules/helpers/api/margin','src/modules/helpers/api/scale','src/modules/helpers/api/zero_line'],function (require) {
+define('src/modules/chart/line',['require','d3','src/modules/component/events','src/modules/helpers/add_event_listener','src/modules/component/axis','src/modules/component/brush','src/modules/element/svg/circle','src/modules/element/svg/clipPath','src/modules/helpers/deep_copy','src/modules/element/svg/path','src/modules/helpers/remove_event_listener','src/modules/helpers/scale_value','src/modules/element/svg/line','src/modules/helpers/options/clippath','src/modules/helpers/options/margin','src/modules/helpers/options/scale','src/modules/helpers/options/x_axis','src/modules/helpers/options/y_axis','src/modules/helpers/options/zero_line','src/modules/helpers/api/axis','src/modules/helpers/api/circles','src/modules/helpers/api/clippath','src/modules/helpers/api/lines','src/modules/helpers/api/margin','src/modules/helpers/api/scale','src/modules/helpers/api/zero_line'],function (require) {
   var d3 = require("d3");
+  var events = require("src/modules/component/events");
 
   var addEventListener = require("src/modules/helpers/add_event_listener");
   var axis = require("src/modules/component/axis");
@@ -13348,7 +13238,6 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
   var clip = require("src/modules/element/svg/clipPath");
   var deepCopy = require("src/modules/helpers/deep_copy");
   var path = require("src/modules/element/svg/path");
-  var mapDomain = require("src/modules/helpers/map_domain");
   var removeEventListener = require("src/modules/helpers/remove_event_listener");
   var scaleValue = require("src/modules/helpers/scale_value");
   var zeroAxisLine = require("src/modules/element/svg/line");
@@ -13411,11 +13300,13 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
       fill: function (d, i, j) { return j; },
       stroke: null,
       radius: 5,
-      strokeWidth: 3
+      strokeWidth: 3,
+      opacity: 1
     };
 
     function chart(selection) {
       selection.each(function (data, index) {
+        // Allows chart to accept an array or object
         data = accessor.call(this, data, index);
 
         width = this.getBoundingClientRect().width;
@@ -13425,7 +13316,7 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         var adjustedHeight = height - margin.top - margin.bottom;
 
         xScale = xScaleOpts.scale || d3.time.scale.utc();
-        xScale.domain(xScaleOpts.domain || d3.extent(mapDomain(data), xValue));
+        xScale.domain(xScaleOpts.domain || d3.extent(d3.merge(data), xValue));
 
         if (typeof xScale.rangeBands === "function") {
           xScale.rangeBands([0, adjustedWidth, 0.1]);
@@ -13433,7 +13324,7 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
           xScale.range([0, adjustedWidth]);
         }
 
-        var yScaleDomain = yScaleOpts.domain || d3.extent(mapDomain(data), yValue);
+        var yScaleDomain = yScaleOpts.domain || d3.extent(d3.merge(data), yValue);
         if (yScaleDomain[0] === yScaleDomain[1]) {
           --yScaleDomain[0];
           ++yScaleDomain[1];
@@ -13444,6 +13335,8 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
 
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
+
+        var svgEvents = events().listeners(listeners).accessor(xValue);
 
         var svg = d3.select(this).selectAll("svg")
           .data([data]);
@@ -13456,7 +13349,8 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         svg.selectAll("g").remove();
 
         var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")")
+          .call(svgEvents);
 
         // Brush
         if (listeners.brush && listeners.brush.length) {
@@ -13478,19 +13372,18 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
         var linePath = path()
           .data([data])
           .pathGenerator(line)
-          .cssClass(lines.lineClass)
+          .class(lines.lineClass)
           .stroke(function (d, i, j) {
             return color(lines.stroke.call(null, d, i, j));
           })
           .strokeWidth(lines.strokeWidth)
-          .opacity(lines.opacity)
-          .listeners(listeners);
+          .opacity(lines.opacity);
 
         if (axisX.show) {
           var xAxis = axis()
             .scale(xScale)
             .chartDimension(adjustedHeight)
-            .gClass(axisX.gClass)
+            .class(axisX.gClass)
             .transform(axisX.transform || "translate(0," + (yScale.range()[0] + 1) + ")")
             .tick(axisX.tick)
             .title(axisX.title);
@@ -13503,7 +13396,7 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
             .scale(yScale)
             .chartDimension(adjustedWidth)
             .orient("left")
-            .gClass(axisY.gClass)
+            .class(axisY.gClass)
             .transform(axisY.transform || "translate(-1,0)")
             .tick(axisY.tick)
             .title(axisY.title);
@@ -13518,7 +13411,7 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
 
         if (zeroLine.add) {
           var zLine = zeroAxisLine()
-            .cssClass(zeroLine.lineClass)
+            .class(zeroLine.lineClass)
             .x1(function () { return xScale.range()[0]; })
             .x2(function () { return xScale.range()[1]; })
             .y1(function () { return yScale(0); })
@@ -13538,15 +13431,14 @@ define('src/modules/chart/line',['require','d3','src/modules/helpers/add_event_l
           var points = circle()
             .cx(X)
             .cy(Y)
-            .color(color)
             .radius(circles.radius)
-            .cssClass(circles.circleClass)
+            .class(circles.circleClass)
             .fill(function (d, i, j) {
               return circles.fill.call(null, d, i, j);
             })
             .stroke(circles.stroke ? circles.stroke : circles.fill)
             .strokeWidth(circles.strokeWidth)
-            .listeners(listeners);
+            .opacity(circles.opacity);
 
           g.call(clippath)
             .append("g")
@@ -14420,14 +14312,13 @@ define('src/modules/chart/xyzplot',['require','d3','src/modules/component/axis',
     return chart;
   };
 });
-define('src/modules/element/svg/image',['require','d3','src/modules/component/events'],function (require) {
+define('src/modules/element/svg/image',['require','d3'],function (require) {
   var d3 = require("d3");
-  var events = require("src/modules/component/events");
 
   return function image() {
+    var accessor = function (d) { return d; };
     var x = function (d) { return d.x; };
     var y = function (d) { return d.y; };
-    var values = null;
     var width = 10;
     var height = 10;
     var xlink = null;
@@ -14435,14 +14326,13 @@ define('src/modules/element/svg/image',['require','d3','src/modules/component/ev
 
     // Options
     var cssClass = "image";
-    var listeners = {};
 
     function element(selection) {
       selection.each(function (data, index) {
-        var imageEvents = events().listeners(listeners);
+        data = accessor.call(this, data, index);
 
         var images = d3.select(this).selectAll("image")
-          .data(values ? values : data);
+          .data(data);
 
         // Exit
         images.exit().remove();
@@ -14459,15 +14349,13 @@ define('src/modules/element/svg/image',['require','d3','src/modules/component/ev
           .attr("height", height)
           .attr("xlink:href", xlink)
           .attr("preserveAspectRatio", preserveAspectRatio);
-
-        images.call(imageEvents);
       });
     }
 
     // Public API
-    element.data = function (_) {
-      if (!arguments.length) { return values; }
-      values = _;
+    element.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
       return element;
     };
     
@@ -14507,15 +14395,9 @@ define('src/modules/element/svg/image',['require','d3','src/modules/component/ev
       return element;
     };
 
-    element.cssClass= function (_) {
+    element.class = function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
-      return element;
-    };
-
-    element.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
       return element;
     };
 
@@ -14628,14 +14510,16 @@ define('src/modules/layout/base',['require','d3'],function (require) {
     var size = [500, 500]; // [width, height]
     var rowScale = d3.scale.linear();
     var columnScale = d3.scale.linear();
+    var numOfCols = 0;
 
-    function formatType(length, type) {
+    function formatType(length, type, cols) {
       var output = {};
 
       switch (type) {
         case "grid":
-          output.rows = Math.round(Math.sqrt(length));
-          output.columns = Math.ceil(Math.sqrt(length));
+          output.rows = cols ? Math.ceil(length / cols) :
+            Math.round(Math.sqrt(length));
+          output.columns = cols ? cols : Math.ceil(Math.sqrt(length));
           break;
 
         case "columns":
@@ -14653,7 +14537,7 @@ define('src/modules/layout/base',['require','d3'],function (require) {
     }
 
     function layout(data) {
-      var format = formatType(data.length, type);
+      var format = formatType(data.length, type, numOfCols);
       var rows = format.rows;
       var columns = format.columns;
       var cellWidth = size[0] / columns;
@@ -14682,6 +14566,12 @@ define('src/modules/layout/base',['require','d3'],function (require) {
     layout.type = function (_) {
       if (!arguments.length) { return type; }
       type = _;
+      return layout;
+    };
+
+    layout.columns = function (_) {
+      if (!arguments.length) { return numOfCols; }
+      numOfCols = _;
       return layout;
     };
 
@@ -14737,33 +14627,29 @@ define('src/modules/layout/grid',['require','d3'],function (require) {
     return layout;
   };
 });
-define('src/modules/element/svg/ellipse',['require','d3','src/modules/component/events'],function (require) {
+define('src/modules/element/svg/ellipse',['require','d3'],function (require) {
   var d3 = require("d3");
-  var events = require("src/modules/component/events");
 
   return function ellipse() {
+    var accessor = function (d) { return d; };
     var cx = function (d) { return d.x; };
     var cy = function (d) { return d.y; };
     var rx = 20;
     var ry = 20;
-    var color = d3.scale.category20c();
-    var values = null;
 
     // Options
     var cssClass = "ellipses";
-    var fill = null;
-    var stroke = null;
+    var fill = colorFill;
+    var stroke = colorFill;
     var strokeWidth = 0;
     var opacity = null;
-    var listeners = {};
 
     function element(selection) {
       selection.each(function (data, index) {
-        var ellipseEvents = events()
-          .listeners(listeners);
+        data = accessor.call(this, data, index);
 
         var ellipses = d3.select(this).selectAll("ellipse")
-          .data(values ? values : data);
+          .data(data);
 
         // Exit
         ellipses.exit().remove();
@@ -14774,27 +14660,25 @@ define('src/modules/element/svg/ellipse',['require','d3','src/modules/component/
         // Update
         ellipses
           .attr("class", cssClass)
-          .attr("fill", fill ? fill : colorFill)
-          .attr("stroke", stroke ? stroke : colorFill)
+          .attr("fill", fill)
+          .attr("stroke", stroke)
           .attr("stroke-width", strokeWidth)
           .attr("cx", cx)
           .attr("cy", cy)
           .attr("rx", rx)
           .attr("ry", ry)
           .style("opacity", opacity);
-
-        ellipses.call(ellipseEvents);
       });
     }
 
     function colorFill(d, i) {
-      return color(i);
+      return d3.scale.category10()(i);
     }
 
     // Public API
-    element.data = function (_) {
-      if (!arguments.length) { return values; }
-      values = _;
+    element.accessor = function (_) {
+      if (!arguments.length) { return accessor; }
+      accessor = _;
       return element;
     };
 
@@ -14822,15 +14706,9 @@ define('src/modules/element/svg/ellipse',['require','d3','src/modules/component/
       return element;
     };
 
-    element.cssClass = function (_) {
+    element.class = function (_) {
       if (!arguments.length) { return cssClass; }
       cssClass = _;
-      return element;
-    };
-
-    element.color = function (_) {
-      if (!arguments.length) { return color; }
-      color = _;
       return element;
     };
 
@@ -14855,12 +14733,6 @@ define('src/modules/element/svg/ellipse',['require','d3','src/modules/component/
     element.strokeWidth = function (_) {
       if (!arguments.length) { return strokeWidth; }
       strokeWidth = _;
-      return element;
-    };
-
-    element.listeners = function (_) {
-      if (!arguments.length) { return listeners; }
-      listeners = _;
       return element;
     };
 

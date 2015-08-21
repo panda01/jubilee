@@ -101,7 +101,7 @@ define(function (require) {
           ++yScaleDomain[1];
         }
         yScale = yScaleOpts.scale || d3.scale.linear();
-        yScale.domain(yScaleDomain);
+        yScale.domain(yScaleDomain)
           .range([adjustedHeight, 0]);
 
         if (xScaleOpts.nice) { xScale.nice(); }
