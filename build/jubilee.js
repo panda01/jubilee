@@ -10007,11 +10007,53 @@ define("src/require.config", function(){});
   return tile;
 };
 
+define('src/modules/valuator',[],function () {
+  return function (val) {
+    if (typeof val === "function") { return val; }
+    if (typeof val === "string") {
+      return function (d) { return d[val]; };
+    }
+    return function () { return val; };
+  };
+});
+define('src/modules/helpers/target_index',[],function () {
+  return function getIndex(parent, child) {
+    function isPresent(d) { return d > -1; }
+    function indexPosition(d, i) {
+      if (d.length > 1) { return i; }
+      return d;
+    }
+    function filterDown(d) {
+      if (Array.isArray(d) && !d.length) { return -1; }
+      return d;
+    }
+
+    var index = parent.datum()
+    .map(function (datum) {
+      var isArray = Array.isArray(child.datum());
+      var target = isArray ? child.datum() : [child.datum()];
+
+      return target.map(function (d) {
+        return datum.indexOf(d);
+      }).filter(isPresent);
+    })
+    .map(indexPosition)
+    .map(filterDown)
+    .filter(isPresent)[0];
+
+    if (Array.isArray(index)) { return index[0]; }
+
+    return index;
+  };
+});
+
 /**
  * Adds event listeners to DOM elements
  */
-define('src/modules/component/events',['require','d3'],function (require) {
+define('src/modules/component/events',['require','d3','src/modules/valuator','src/modules/helpers/target_index'],function (require) {
   var d3 = require("d3");
+  var valuator = require("src/modules/valuator");
+  var targetIndex = require("src/modules/helpers/target_index");
 
   return function events() {
     var accessor = function (d) { return d.x; };
@@ -10020,7 +10062,6 @@ define('src/modules/component/events',['require','d3'],function (require) {
     function component(selection) {
       selection.each(function (data, index) {
         var element = d3.select(this);
-        var bisect = d3.bisector(accessor).left;
 
         d3.entries(listeners).forEach(function (e, i) {
 
@@ -10036,9 +10077,9 @@ define('src/modules/component/events',['require','d3'],function (require) {
             e.value.forEach(function (listener) {
               // References the data point to calculate the correct index value
               var target = d3.select(d3.event.target);
-              var parentDatum = d3.select(target.node().parentNode).datum();
+              var parent = d3.select(d3.event.target.farthestViewportElement);
               var datum = target.datum();
-              var index = bisect(parentDatum, accessor.call(null, datum));
+              var index = targetIndex(parent, target);
 
               listener.call(this, d3.event, datum, index);
             });
@@ -10050,7 +10091,7 @@ define('src/modules/component/events',['require','d3'],function (require) {
     // Public API
     component.accessor = function (_) {
       if (!arguments.length) { return accessor; }
-      accessor = _;
+      accessor = valuator(_);
       return component;
     };
 
