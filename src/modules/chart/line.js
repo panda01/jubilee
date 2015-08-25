@@ -113,6 +113,7 @@ define(function (require) {
           .data([data]);
 
         svg.enter().append("svg")
+          .call(svgEvents)
           .attr("width", width)
           .attr("height", height);
         svg.exit().remove();
@@ -120,8 +121,7 @@ define(function (require) {
         svg.selectAll("g").remove();
 
         var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")")
-          .call(svgEvents);
+          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         // Brush
         if (listeners.brush && listeners.brush.length) {
