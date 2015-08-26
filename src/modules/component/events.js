@@ -6,7 +6,7 @@ define(function (require) {
   var targetIndex = require("src/modules/helpers/target_index");
 
   function comparator(target) {
-    var threshold = 1000 * 10;
+    var threshold = 1000 * 5;
 
     return function (val) {
       var isWithinThreshold = (val - threshold < target) && (val + threshold > target);
