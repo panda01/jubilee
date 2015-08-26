@@ -107,7 +107,7 @@ define(function (require) {
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
-        var svgEvents = events().listeners(listeners).accessor(xValue);
+        var svgEvents = events().listeners(listeners);
 
         var svg = d3.select(this).selectAll("svg")
           .data([data]);
