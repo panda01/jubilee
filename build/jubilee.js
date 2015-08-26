@@ -13383,7 +13383,6 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
           .data([data]);
 
         svg.enter().append("svg")
-          .call(svgEvents)
           .attr("width", width)
           .attr("height", height);
         svg.exit().remove();
@@ -13391,6 +13390,7 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
         svg.selectAll("g").remove();
 
         var g = svg.append("g")
+          .call(svgEvents)
           .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         // Brush
