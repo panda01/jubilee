@@ -10007,15 +10007,6 @@ define("src/require.config", function(){});
   return tile;
 };
 
-define('src/modules/valuator',[],function () {
-  return function (val) {
-    if (typeof val === "function") { return val; }
-    if (typeof val === "string") {
-      return function (d) { return d[val]; };
-    }
-    return function () { return val; };
-  };
-});
 define('src/modules/helpers/target_index',[],function () {
   return function getIndex(parent, child) {
     function isPresent(d) { return d > -1; }
@@ -10050,14 +10041,46 @@ define('src/modules/helpers/target_index',[],function () {
 /**
  * Adds event listeners to DOM elements
  */
-define('src/modules/component/events',['require','d3','src/modules/valuator','src/modules/helpers/target_index'],function (require) {
+define('src/modules/component/events',['require','d3','src/modules/helpers/target_index'],function (require) {
   var d3 = require("d3");
-  var valuator = require("src/modules/valuator");
   var targetIndex = require("src/modules/helpers/target_index");
+
+  function comparator(target) {
+    var threshold = 1000 * 10;
+
+    return function (val) {
+      var isWithinThreshold = (val - threshold < target) && (val + threshold > target);
+      if (isWithinThreshold) {
+        return 0;
+      }
+      return val > threshold ? 1 : -1;
+    };
+  }
+
+  function makeBinarySearch(arr, comparator, accessor) {
+    var midPoint = Math.floor(arr.length / 2);
+    var midValue = accessor(arr[midPoint]);
+    var difference = comparator(midValue);
+
+    // if we're down to an array of one, and there is a difference
+    if( arr.length === 1 && difference ) {
+      return null;
+    }
+
+    if (difference === 1) {
+      return makeBinarySearch(arr.slice(midPoint), comparator, accessor);
+    }
+    if (difference === -1) {
+      return makeBinarySearch(arr.slice(0, midPoint), comparator, accessor);
+    }
+
+    return arr[midPoint];
+  }
 
   return function events() {
     // Private variables
     var listeners = {};
+    var xScale = null;
 
     function component(selection) {
       selection.each(function () {
@@ -10078,10 +10101,21 @@ define('src/modules/component/events',['require','d3','src/modules/valuator','sr
               var svg = d3.event.target.farthestViewportElement;
               var target = d3.select(d3.event.target);
               var parent = !svg ? d3.select(d3.event.target) : d3.select(svg);
-              var datum = target.datum();
+              //var datum = target.datum();
               var index = targetIndex(parent, target) || 0;
 
-              listener.call(this, d3.event, datum, index);
+              var parentDatum = parent.datum();
+              var coordinates = d3.mouse(parent.select("g").node());
+              var tart = xScale.invert(coordinates[0]).getTime();
+
+              var accessor = function (d) { return d.x; };
+              var comp = comparator(tart);
+              var chaChing = parentDatum.map(function (datum) {
+                return makeBinarySearch(datum, comp, accessor);
+              });
+              console.log(chaChing);
+
+              //listener.call(this, d3.event, datum, index);
             });
           });
         });
@@ -10095,9 +10129,16 @@ define('src/modules/component/events',['require','d3','src/modules/valuator','sr
       return component;
     };
 
+    component.xScale = function (_) {
+      if (!arguments.length) { return xScale; }
+      xScale = _;
+      return component;
+    };
+
     return component;
   };
 });
+
 /**
  * Returns a function that adds an eventType, e.g. click, brush, mouseover
  * and event listener, e.g. function (e) { console.log(e); }
@@ -13371,12 +13412,13 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
-        var svgEvents = events().listeners(listeners);
+        var svgEvents = events().listeners(listeners).xScale(xScale);
 
         var svg = d3.select(this).selectAll("svg")
           .data([data]);
 
         svg.enter().append("svg")
+          .call(svgEvents)
           .attr("width", width)
           .attr("height", height);
         svg.exit().remove();
@@ -13384,7 +13426,6 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
         svg.selectAll("g").remove();
 
         var g = svg.append("g")
-          .call(svgEvents)
           .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         // Brush

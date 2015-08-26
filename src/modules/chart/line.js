@@ -107,12 +107,13 @@ define(function (require) {
         if (xScaleOpts.nice) { xScale.nice(); }
         if (yScaleOpts.nice) { yScale.nice(); }
 
-        var svgEvents = events().listeners(listeners);
+        var svgEvents = events().listeners(listeners).xScale(xScale);
 
         var svg = d3.select(this).selectAll("svg")
           .data([data]);
 
         svg.enter().append("svg")
+          .call(svgEvents)
           .attr("width", width)
           .attr("height", height);
         svg.exit().remove();
@@ -120,7 +121,6 @@ define(function (require) {
         svg.selectAll("g").remove();
 
         var g = svg.append("g")
-          .call(svgEvents)
           .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         // Brush
