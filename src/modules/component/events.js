@@ -75,7 +75,7 @@ define(function (require) {
               });
               console.log(chaChing);
 
-              //listener.call(this, d3.event, datum, index);
+              listener.call(this, d3.event, chaChing, index);
             });
           });
         });
