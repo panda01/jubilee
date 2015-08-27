@@ -50,10 +50,16 @@ define(function (require) {
           .tickPadding(tick.padding)
           .tickFormat(tick.format);
 
-        var g = d3.select(this).append("g")
-          .attr("class", gClass)
-          .attr("transform", transform)
-          .call(axis);
+        var classList = gClass.split(' ');
+        classList.shift('g');
+
+        var g = d3.select(this).selectAll(classList.join('.'));
+        if(!g.size()) {
+          g = d3.select(this).append("g")
+            .attr("class", gClass)
+            .attr("transform", transform)
+            .call(axis);
+        }
 
         g.selectAll(".tick text")
           .attr("transform", "rotate(" + tick.rotate + ")")
