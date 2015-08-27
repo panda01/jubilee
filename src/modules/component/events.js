@@ -66,6 +66,7 @@ define(function (require) {
 
               var parentDatum = parent.datum();
               var coordinates = d3.mouse(parent.select("g").node());
+              console.log('X:', coordinates[0], ', Y:', coordinates[1]);
               var tart = xScale.invert(coordinates[0]).getTime();
 
               var accessor = function (d) { return d.x; };
