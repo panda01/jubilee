@@ -122,7 +122,7 @@ define(function (require) {
 
         var g = svg.selectAll("g");
         if( !g.size() ) {
-          svg.append("g")
+          g = svg.append("g")
             .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
         }
 
