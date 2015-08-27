@@ -112,16 +112,19 @@ define(function (require) {
         var svg = d3.select(this).selectAll("svg")
           .data([data]);
 
-        svg.enter().append("svg")
-          .call(svgEvents)
-          .attr("width", width)
-          .attr("height", height);
-        svg.exit().remove();
+        if(!svg.size()) {
+          svg.enter().append("svg")
+            .call(svgEvents);
+        }
+        svg.attr("width", width)
+            .attr("height", height);
 
-        svg.selectAll("g").remove();
 
-        var g = svg.append("g")
-          .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+        var g = svg.selectAll("g");
+        if( !g.size() ) {
+          svg.append("g")
+            .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+        }
 
         // Brush
         if (listeners.brush && listeners.brush.length) {
@@ -175,7 +178,6 @@ define(function (require) {
         }
 
         g.append("g")
-          .data([data])
           .attr("class", lines.groupClass)
           .call(linePath);
 
