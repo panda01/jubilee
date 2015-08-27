@@ -10053,7 +10053,7 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
       if (isWithinThreshold) {
         return 0;
       }
-      return val > threshold ? 1 : -1;
+      return val < target ? 1 : -1;
     };
   }
 

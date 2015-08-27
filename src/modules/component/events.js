@@ -13,7 +13,7 @@ define(function (require) {
       if (isWithinThreshold) {
         return 0;
       }
-      return val > threshold ? 1 : -1;
+      return val < target ? 1 : -1;
     };
   }
 
