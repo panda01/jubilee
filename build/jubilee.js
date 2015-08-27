@@ -13433,6 +13433,7 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
 
 
         var g = svg.selectAll("g");
+        g.html("");
         if( !g.size() ) {
           g = svg.append("g")
             .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");

@@ -121,6 +121,7 @@ define(function (require) {
 
 
         var g = svg.selectAll("g");
+        g.html("");
         if( !g.size() ) {
           g = svg.append("g")
             .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
