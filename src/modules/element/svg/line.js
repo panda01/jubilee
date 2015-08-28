@@ -18,18 +18,12 @@ define(function (require) {
         data = accessor.call(this, data, index);
 
         var lines = d3.select(this).selectAll("lines")
-        debugger;
+          .data(data);
 
-        // Exit
-        lines.exit().remove();
 
         // Enter
         lines.enter().append("line")
-          .data(data);
-
-        // Update
-        lines
-          .attr("class", cssClass)
+          .attr("class", cssClass)    // Update
           .attr("x1", x1)
           .attr("x2", x2)
           .attr("y1", y1)
@@ -37,6 +31,9 @@ define(function (require) {
           .attr("stroke", stroke)
           .attr("stroke-width", strokeWidth)
           .style("opacity", opacity);
+
+        // Exit
+        lines.exit().remove();
       });
     }
 

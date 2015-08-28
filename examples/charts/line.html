@@ -26,18 +26,10 @@
       var currTime = new Date();
       var data = {
         series: [
-          [
-            { x: currTime.getTime(), y: 41, label: "band"},
-          ],
-          [
-            { x: currTime.getTime(), y: 91, label: "of"},
-          ],
-          [
-            { x: currTime.getTime(), y: 191, label: "brothers"},
-          ],
-          [
-            { x: currTime.getTime(), y: -201, label: "yes"},
-          ]
+          [{ x: currTime.getTime(), y: 41, label: "band"}],
+          [{ x: currTime.getTime(), y: 91, label: "of"}],
+          [{ x: currTime.getTime(), y: 191, label: "brothers"}],
+          [{ x: currTime.getTime(), y: -201, label: "yes"}]
         ]
       };
 
@@ -56,7 +48,7 @@
         seriesArr.forEach(function(series) {
           var sample = series[0];
           addDataPoint(series, currTime.getTime() + (count * increment), sample.label);
-          if( series.length > 10 ) {
+          if( series.length > 20 ) {
             series.shift();
           }
         });
@@ -97,7 +89,7 @@
         addDataPoints(data.series);
         var selection = d3.select("#chart");
         selection.datum(data.series).call(myChart);
-        setTimeout(drawChart, 5000);
+        setTimeout(drawChart, 1000);
       }
       drawChart();
   });

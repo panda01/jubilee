@@ -10586,6 +10586,7 @@ define('src/modules/element/svg/path',['require','d3'],function (require) {
         var path = d3.select(this).selectAll("path")
           .data(data);
 
+        path.exit().remove();
 
         path.enter().append("path")
           .attr("transform", transform)
@@ -10595,9 +10596,6 @@ define('src/modules/element/svg/path',['require','d3'],function (require) {
           .attr("stroke-width", strokeWidth)
           .attr("d", pathGenerator)
           .style("opacity", opacity);
-
-
-        path.exit().remove();
       });
     }
 
@@ -10710,18 +10708,12 @@ define('src/modules/element/svg/line',['require','d3'],function (require) {
         data = accessor.call(this, data, index);
 
         var lines = d3.select(this).selectAll("lines")
-        debugger;
+          .data(data);
 
-        // Exit
-        lines.exit().remove();
 
         // Enter
         lines.enter().append("line")
-          .data(data);
-
-        // Update
-        lines
-          .attr("class", cssClass)
+          .attr("class", cssClass)    // Update
           .attr("x1", x1)
           .attr("x2", x2)
           .attr("y1", y1)
@@ -10729,6 +10721,9 @@ define('src/modules/element/svg/line',['require','d3'],function (require) {
           .attr("stroke", stroke)
           .attr("stroke-width", strokeWidth)
           .style("opacity", opacity);
+
+        // Exit
+        lines.exit().remove();
       });
     }
 
