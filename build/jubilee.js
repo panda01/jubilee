@@ -10588,7 +10588,6 @@ define('src/modules/element/svg/path',['require','d3'],function (require) {
 
 
         path.enter().append("path")
-          .data(data)
           .attr("transform", transform)
           .attr("class", cssClass)
           .attr("fill", fill)

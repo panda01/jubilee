@@ -56,6 +56,9 @@
         seriesArr.forEach(function(series) {
           var sample = series[0];
           addDataPoint(series, currTime.getTime() + (count * increment), sample.label);
+          if( series.length > 10 ) {
+            series.shift();
+          }
         });
         ++count;
       }
@@ -79,19 +82,24 @@
         })
         .on('mousemove', handleMouseEvt);
 
-        addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
+      addDataPoints(data.series);
 
       function drawChart() {
         addDataPoints(data.series);
         var selection = d3.select("#chart");
         selection.datum(data.series).call(myChart);
+        setTimeout(drawChart, 5000);
       }
       drawChart();
-      setTimeout(drawChart, 1000);
-      setTimeout(drawChart, 2000);
-      setTimeout(drawChart, 3000);
-      setTimeout(drawChart, 4000);
-      setTimeout(drawChart, 5000);
   });
   </script>
 </body>
