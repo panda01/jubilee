@@ -20,8 +20,6 @@ define(function (require) {
         var path = d3.select(this).selectAll("path")
           .data(data);
 
-        path.exit().remove();
-
         path.enter().append("path")
           .attr("transform", transform)
           .attr("class", cssClass)
@@ -30,6 +28,9 @@ define(function (require) {
           .attr("stroke-width", strokeWidth)
           .attr("d", pathGenerator)
           .style("opacity", opacity);
+
+        path.exit().remove();
+
       });
     }
 
