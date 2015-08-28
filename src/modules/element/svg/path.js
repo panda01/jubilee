@@ -22,6 +22,7 @@ define(function (require) {
 
 
         path.enter().append("path")
+          .data(data)
           .attr("transform", transform)
           .attr("class", cssClass)
           .attr("fill", fill)
