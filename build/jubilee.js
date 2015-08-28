@@ -10595,7 +10595,6 @@ define('src/modules/element/svg/path',['require','d3'],function (require) {
           .attr("d", pathGenerator)
           .style("opacity", opacity);
 
-        path.exit().remove();
 
       });
     }
@@ -13453,7 +13452,7 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
 
         var X = scaleValue(xScale, xValue);
         var Y = scaleValue(yScale, yValue);
-        var line = d3.svg.line().x(X).y(Y)
+        var line = d3.svg.line(data).x(X).y(Y)
           .interpolate(interpolate)
           .tension(tension)
           .defined(defined);
@@ -13493,6 +13492,7 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
         }
 
         g.append("g")
+          .data([data])
           .attr("class", lines.groupClass)
           .call(linePath);
 

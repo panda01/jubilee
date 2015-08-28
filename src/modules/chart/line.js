@@ -140,7 +140,7 @@ define(function (require) {
 
         var X = scaleValue(xScale, xValue);
         var Y = scaleValue(yScale, yValue);
-        var line = d3.svg.line().x(X).y(Y)
+        var line = d3.svg.line(data).x(X).y(Y)
           .interpolate(interpolate)
           .tension(tension)
           .defined(defined);
@@ -180,6 +180,7 @@ define(function (require) {
         }
 
         g.append("g")
+          .data([data])
           .attr("class", lines.groupClass)
           .call(linePath);
 

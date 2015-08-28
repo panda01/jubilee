@@ -29,7 +29,6 @@ define(function (require) {
           .attr("d", pathGenerator)
           .style("opacity", opacity);
 
-        path.exit().remove();
 
       });
     }
