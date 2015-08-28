@@ -13432,6 +13432,7 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
 
         if(!svg.size()) {
           svg.enter().append("svg")
+            .call(svgEvents);
         }
         svg.attr("width", width)
             .attr("height", height);

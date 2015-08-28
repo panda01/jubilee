@@ -115,6 +115,7 @@ define(function (require) {
 
         if(!svg.size()) {
           svg.enter().append("svg")
+            .call(svgEvents);
         }
         svg.attr("width", width)
             .attr("height", height);
