@@ -18,13 +18,14 @@ define(function (require) {
         data = accessor.call(this, data, index);
 
         var lines = d3.select(this).selectAll("lines")
-          .data(data);
+        debugger;
 
         // Exit
         lines.exit().remove();
 
         // Enter
-        lines.enter().append("line");
+        lines.enter().append("line")
+          .data(data);
 
         // Update
         lines

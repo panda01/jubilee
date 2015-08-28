@@ -43,6 +43,7 @@ define(function (require) {
     var xScale = null;
 
     function component(selection) {
+      var that = this;
       selection.each(function () {
         var element = d3.select(this);
 

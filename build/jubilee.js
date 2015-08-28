@@ -10083,6 +10083,7 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
     var xScale = null;
 
     function component(selection) {
+      var that = this;
       selection.each(function () {
         var element = d3.select(this);
 
@@ -10585,7 +10586,6 @@ define('src/modules/element/svg/path',['require','d3'],function (require) {
         var path = d3.select(this).selectAll("path")
           .data(data);
 
-        path.exit().remove();
 
         path.enter().append("path")
           .attr("transform", transform)
@@ -10595,6 +10595,9 @@ define('src/modules/element/svg/path',['require','d3'],function (require) {
           .attr("stroke-width", strokeWidth)
           .attr("d", pathGenerator)
           .style("opacity", opacity);
+
+
+        path.exit().remove();
       });
     }
 
@@ -10707,13 +10710,14 @@ define('src/modules/element/svg/line',['require','d3'],function (require) {
         data = accessor.call(this, data, index);
 
         var lines = d3.select(this).selectAll("lines")
-          .data(data);
+        debugger;
 
         // Exit
         lines.exit().remove();
 
         // Enter
-        lines.enter().append("line");
+        lines.enter().append("line")
+          .data(data);
 
         // Update
         lines
@@ -10790,6 +10794,7 @@ define('src/modules/element/svg/line',['require','d3'],function (require) {
     return element;
   };
 });
+
 define('src/modules/helpers/options/clippath',[],function () {
   return {
     width: null,
@@ -13422,11 +13427,11 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
         var svgEvents = events().listeners(listeners).xScale(xScale);
 
         var svg = d3.select(this).selectAll("svg")
+          .call(svgEvents)
           .data([data]);
 
         if(!svg.size()) {
           svg.enter().append("svg")
-            .call(svgEvents);
         }
         svg.attr("width", width)
             .attr("height", height);

@@ -23,42 +23,45 @@
           src="../../../node_modules/requirejs/require.js"></script>
   <script>
     require(["../../src/index"], function (jubilee) {
+      var currTime = new Date();
       var data = {
         series: [
           [
-            { x: 1411761450000, y: 41, label: "band"},
-            { x: 1411761480000, y: 18, label: "band"},
-            { x: 1411761510000, y: 20, label: "band"},
-            { x: 1411761540000, y: 17, label: "band"},
-            { x: 1411761570000, y: 17, label: "band"}
+            { x: currTime.getTime(), y: 41, label: "band"},
           ],
           [
-            { x: 1411761450000, y: 91, label: "of"},
-            { x: 1411761480000, y: 88, label: "of"},
-            { x: 1411761510000, y: 100, label: "of"},
-            { x: 1411761540000, y: 47, label: "of"},
-            { x: 1411761570000, y: 57, label: "of"}
+            { x: currTime.getTime(), y: 91, label: "of"},
           ],
           [
-            { x: 1411761450000, y: 191, label: "brothers"},
-            { x: 1411761480000, y: 188, label: "brothers"},
-            { x: 1411761510000, y: 105, label: "brothers"},
-            { x: 1411761540000, y: 147, label: "brothers"},
-            { x: 1411761570000, y: 157, label: "brothers"}
+            { x: currTime.getTime(), y: 191, label: "brothers"},
           ],
           [
-            { x: 1411761450000, y: -201, label: "yes"},
-            { x: 1411761480000, y: -198, label: "yes"},
-            { x: 1411761510000, y: -232, label: "yes"},
-            { x: 1411761540000, y: -547, label: "yes"},
-            { x: 1411761570000, y: -357, label: "yes"}
+            { x: currTime.getTime(), y: -201, label: "yes"},
           ]
         ]
       };
 
+
+      function addDataPoint(arr, ms, label) {
+        arr.push({
+          x: ms,
+          y: (Math.round(Math.random() * 600) - 300),
+          label: label
+        });
+      }
+
+      var count = 1;
+      function addDataPoints(seriesArr) {
+        var increment = 1000 * 30;
+        seriesArr.forEach(function(series) {
+          var sample = series[0];
+          addDataPoint(series, currTime.getTime() + (count * increment), sample.label);
+        });
+        ++count;
+      }
+
       var color = d3.scale.category10(["band", "of", "brothers", "yes"]);
       function handleMouseEvt(evt, data, idx) {
-        debugger;
         console.log(data);
       }
 
@@ -66,7 +69,7 @@
         .height(500)
         .yScale({ nice: true })
         .lines({
-          stroke: function (d) { return color(d[0].label); },
+          stroke: function (d) { return color(d.label); },
           interpolate: "cardinal",
         })
         .circles({
@@ -76,8 +79,19 @@
         })
         .on('mousemove', handleMouseEvt);
 
-      var selection = d3.select("#chart");
-      selection.datum(data.series).call(myChart);
+        addDataPoints(data.series);
+
+      function drawChart() {
+        addDataPoints(data.series);
+        var selection = d3.select("#chart");
+        selection.datum(data.series).call(myChart);
+      }
+      drawChart();
+      setTimeout(drawChart, 1000);
+      setTimeout(drawChart, 2000);
+      setTimeout(drawChart, 3000);
+      setTimeout(drawChart, 4000);
+      setTimeout(drawChart, 5000);
   });
   </script>
 </body>

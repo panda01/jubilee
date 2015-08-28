@@ -110,11 +110,11 @@ define(function (require) {
         var svgEvents = events().listeners(listeners).xScale(xScale);
 
         var svg = d3.select(this).selectAll("svg")
+          .call(svgEvents)
           .data([data]);
 
         if(!svg.size()) {
           svg.enter().append("svg")
-            .call(svgEvents);
         }
         svg.attr("width", width)
             .attr("height", height);
