@@ -67,7 +67,6 @@ define(function (require) {
 
               var parentDatum = parent.datum();
               var coordinates = d3.mouse(parent.select("g").node());
-              console.log('X:', coordinates[0], ', Y:', coordinates[1]);
               var tart = xScale.invert(coordinates[0]).getTime();
 
               var accessor = function (d) { return d.x; };
@@ -75,7 +74,6 @@ define(function (require) {
               var chaChing = parentDatum.map(function (datum) {
                 return makeBinarySearch(datum, comp, accessor);
               });
-              console.log(chaChing);
 
               listener.call(this, d3.event, chaChing, index);
             });
