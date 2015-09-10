@@ -10046,7 +10046,7 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
   var targetIndex = require("src/modules/helpers/target_index");
 
   function comparator(target) {
-    var threshold = 2500;
+    var threshold = 5000;
 
     return function (val) {
       var isWithinThreshold = (val - threshold < target) && (val + threshold > target);
