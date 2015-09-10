@@ -10046,7 +10046,7 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
   var targetIndex = require("src/modules/helpers/target_index");
 
   function comparator(target) {
-    var threshold = 1000 * 5;
+    var threshold = 100 * 5;
 
     return function (val) {
       var isWithinThreshold = (val - threshold < target) && (val + threshold > target);
@@ -10107,7 +10107,6 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
 
               var parentDatum = parent.datum();
               var coordinates = d3.mouse(parent.select("g").node());
-              console.log('X:', coordinates[0], ', Y:', coordinates[1]);
               var tart = xScale.invert(coordinates[0]).getTime();
 
               var accessor = function (d) { return d.x; };
@@ -10115,7 +10114,6 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
               var chaChing = parentDatum.map(function (datum) {
                 return makeBinarySearch(datum, comp, accessor);
               });
-              console.log(chaChing);
 
               listener.call(this, d3.event, chaChing, index);
             });
