@@ -10115,7 +10115,12 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
                 return makeBinarySearch(datum, comp, accessor);
               });
 
-              listener.call(this, d3.event, chaChing, chaChing.map(accessor).map(xScale), index);
+              var cleanedValues = chaChing.reduce(function(currList, curr) {
+                if(curr) { currList.push(curr); }
+                return currList;
+              },[]);
+
+              listener.call(this, d3.event, chaChing, cleanedValues.map(accessor).map(xScale), index);
             });
           });
         });
