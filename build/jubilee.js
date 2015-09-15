@@ -10115,7 +10115,7 @@ define('src/modules/component/events',['require','d3','src/modules/helpers/targe
                 return makeBinarySearch(datum, comp, accessor);
               });
 
-              listener.call(this, d3.event, chaChing, index);
+              listener.call(this, d3.event, chaChing, chaChing.map(xScale), index);
             });
           });
         });

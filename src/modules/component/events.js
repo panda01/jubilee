@@ -75,7 +75,7 @@ define(function (require) {
                 return makeBinarySearch(datum, comp, accessor);
               });
 
-              listener.call(this, d3.event, chaChing, index);
+              listener.call(this, d3.event, chaChing, chaChing.map(accessor).map(xScale), index);
             });
           });
         });
