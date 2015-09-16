@@ -13436,11 +13436,8 @@ define('src/modules/chart/line',['require','d3','src/modules/component/events','
             .attr("height", height);
 
 
-        var g = svg.selectAll("g");
-        g.html("");
-        if( !g.size() ) {
-          g = svg.append("g");
-        }
+        svg.selectAll("g").remove();
+        var g = svg.append("g");
         g.attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
         // Brush
